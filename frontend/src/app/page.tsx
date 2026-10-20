@@ -11,7 +11,7 @@ import { MacroSentimentWidget } from '@/components/trading/MacroSentimentWidget'
 import { NewsFeedWidget } from '@/components/trading/NewsFeedWidget';
 import { TelemetryDashboard } from '@/components/admin/TelemetryDashboard';
 import { wsClient } from '@/services/websocket';
-import { fetchSignals, fetchNews, fetchTelemetry, triggerSignalEvaluation, normalizeSignal } from '@/services/api';
+import { fetchSignals, fetchNews, fetchTelemetry, triggerSignalEvaluation, normalizeSignal, normalizeNews } from '@/services/api';
 import { MarketTick, PredictiveSignal, NewsEvent, SystemTelemetry } from '@/types/market';
 
 export default function Home() {
@@ -158,9 +158,9 @@ export default function Home() {
   useEffect(() => {
     loadInitialData();
 
-    wsClient.onStatusChange = (status) => {
+    const unsubStatus = wsClient.addStatusListener((status) => {
       setConnectionStatus(status);
-    };
+    });
 
     wsClient.connect();
 
@@ -203,11 +203,13 @@ export default function Home() {
     // Listener de Noticias en vivo
     const unsubNews = wsClient.on('news', (msg) => {
       if (msg.data) {
-        setNews((prev) => [msg.data, ...prev.slice(0, 19)]);
+        const norm = normalizeNews(msg.data);
+        setNews((prev) => [norm, ...prev.slice(0, 19)]);
       }
     });
 
     return () => {
+      unsubStatus();
       unsubTicks();
       unsubSignals();
       unsubNews();

@@ -143,24 +143,27 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
     });
     candleSeriesRef.current = candlestickSeries;
 
-    // Serie de Volumen
-    const volumeSeries = chart.addSeries(HistogramSeries, {
-      priceFormat: { type: 'volume' },
-      priceScaleId: '',
-    });
-    volumeSeries.priceScale().applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0 },
-    });
-    volumeSeriesRef.current = volumeSeries;
-
-    // Cargar datos
+    // Cargar datos de velas inmediatamente
     const refPrice = currentPrice || (symbol === 'BTC/USDT' ? 82450 : symbol === 'ETH/USDT' ? 2450 : symbol === 'SOL/USDT' ? 145 : 100);
     const { candles, volumes } = generateInitialData(refPrice);
     candlestickSeries.setData(candles as any);
-    volumeSeries.setData(volumes as any);
+
+    // Serie de Volumen protegida
+    try {
+      const volumeSeries = chart.addSeries(HistogramSeries, {
+        priceFormat: { type: 'volume' },
+        priceScaleId: '',
+      });
+      volumeSeries.setData(volumes as any);
+      volumeSeriesRef.current = volumeSeries;
+    } catch (e) {
+      console.warn('[TradingViewChart] Fallback para histograma de volumen:', e);
+    }
 
     // Ajustar velas a la pantalla
-    chart.timeScale().fitContent();
+    try {
+      chart.timeScale().fitContent();
+    } catch {}
 
     // ResizeObserver para adaptar al contenedor inmediatamente
     const resizeObserver = new ResizeObserver((entries) => {

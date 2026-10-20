@@ -1,20 +1,22 @@
 # SEMILLA VIVA DE ESTADO (CHECKPOINT SEED)
 
-- **FECHA_HORA:** 2026-10-20T16:35:00-04:00
+- **FECHA_HORA:** 2026-10-20T17:07:00-04:00
 - **AGENTE_MODELO:** Gemini 3.8 Flash (High) / Antigravity AI Orchestrator
 - **ROL_ACTIVO:** devops-security-agent & frontend-terminal-agent
-- **FASE_ACTUAL:** Fases 1 a 4 Concluidas y Desplegadas en GitHub (`main`) -> Inicio de Fase 5
-- **ID_TAREA_ACTUAL:** Commit `7e6180b` Sincronizado en `origin/main` -> Siguiente: Fase 5.1
-- **ESTADO_TAREA:** LISTO_PARA_INICIAR
+- **FASE_ACTUAL:** Fases 1 a 4 Concluidas y Desplegadas en GitHub (`main`) -> Listo para Fase 5
+- **ID_TAREA_ACTUAL:** Corrección de 'CONECTANDO' indefinido, NewsFeed TypeError y Telemetría Overview
+- **ESTADO_TAREA:** COMPLETADO_LISTO_PARA_PUSH
 
 ---
 
 ## 1. ULTIMA ACCION COMPLETADA
-- **Terminal de Trading y Telemetría 100% Funcionales y Publicadas (`https://github.com/eltavo1985/motorPredictivo`):**
-  - Corrección de conexión WebSocket con hostname dinámico (`127.0.0.1` / `localhost`).
-  - Renderizado garantizado de TradingView con `ResizeObserver` reactivo y centrado `fitContent()`.
-  - Normalización de datos para señales de IA (compatibilidad con `action_suggested` y parsing de números decimales).
-  - Repositorio GitHub actualizado en `origin/main` (commit `7e6180b`).
+- **Resolución integral de bloqueo 'CONECTANDO' y Gráfico TradingView:**
+  - Identificado error en `NewsFeedWidget`: el backend devolvía `sentiment_score` como string decimal (ej. `"-0.650"`) y sin `sentiment_label`, lo que provocaba `score.toFixed is not a function`, estrellando el renderizado de React en la carga inicial y congelando el estado en 'CONECTANDO'.
+  - Implementada función `normalizeNews` en `src/services/api.ts` y sanitización ultra defensiva en `NewsFeedWidget.tsx`.
+  - Agregado listener de estado síncrono inmediato en `MarketWebSocketClient` (`addStatusListener`), garantizando reporte inmediato al montar el componente.
+  - Añadido endpoint `/api/v1/telemetry/overview` en FastAPI para eliminar los 404 y servir métricas en vivo combinadas.
+  - Configurado `allowedDevOrigins` en `next.config.ts` para habilitar HMR con `127.0.0.1`.
+  - Build de Next.js (`npm run build`) validado con 0 errores TypeScript.
 
 
 ---

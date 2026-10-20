@@ -1,5 +1,7 @@
 export type MessageHandler = (data: any) => void;
 
+export type ConnectionStatus = 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR';
+
 export class MarketWebSocketClient {
   private url: string = '';
   private ws: WebSocket | null = null;
@@ -9,10 +11,45 @@ export class MarketWebSocketClient {
   private pingIntervalId: any = null;
   private listeners: Map<string, Set<MessageHandler>> = new Map();
   private subscribedChannels: Set<string> = new Set();
-  public onStatusChange?: (status: 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR') => void;
+  private statusListeners: Set<(status: ConnectionStatus) => void> = new Set();
+  private currentStatus: ConnectionStatus = 'DISCONNECTED';
 
   constructor() {
-    // URL se resolverá dinámicamente en connect()
+    // URL dinámica
+  }
+
+  public getStatus(): ConnectionStatus {
+    if (!this.ws) return 'DISCONNECTED';
+    if (this.ws.readyState === WebSocket.OPEN) return 'CONNECTED';
+    if (this.ws.readyState === WebSocket.CONNECTING) return 'CONNECTING';
+    return 'DISCONNECTED';
+  }
+
+  private notifyStatus(status: ConnectionStatus): void {
+    this.currentStatus = status;
+    this.statusListeners.forEach((fn) => {
+      try {
+        fn(status);
+      } catch (e) {
+        console.error('[WebSocket] Error en status listener:', e);
+      }
+    });
+  }
+
+  public addStatusListener(fn: (status: ConnectionStatus) => void): () => void {
+    this.statusListeners.add(fn);
+    // Notificar inmediatamente el estado actual
+    fn(this.getStatus());
+    return () => {
+      this.statusListeners.delete(fn);
+    };
+  }
+
+  // Compatibilidad con asignación onStatusChange
+  public set onStatusChange(fn: ((status: ConnectionStatus) => void) | undefined) {
+    if (fn) {
+      this.addStatusListener(fn);
+    }
   }
 
   private resolveUrl(): string {
@@ -26,13 +63,19 @@ export class MarketWebSocketClient {
   public connect(): void {
     if (typeof window === 'undefined') return;
 
-    // Si ya está abierto o conectando, no duplicar
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-      return;
+    if (this.ws) {
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.notifyStatus('CONNECTED');
+        return;
+      }
+      if (this.ws.readyState === WebSocket.CONNECTING) {
+        this.notifyStatus('CONNECTING');
+        return;
+      }
     }
 
     this.url = this.resolveUrl();
-    this.onStatusChange?.('CONNECTING');
+    this.notifyStatus('CONNECTING');
     console.log('[WebSocket] Conectando a Gateway:', this.url);
 
     try {
@@ -40,8 +83,8 @@ export class MarketWebSocketClient {
 
       this.ws.onopen = () => {
         this.reconnectAttempts = 0;
-        this.onStatusChange?.('CONNECTED');
-        console.log('[WebSocket] Conexión establecida con éxito en:', this.url);
+        this.notifyStatus('CONNECTED');
+        console.log('[WebSocket] Conexión abierta con éxito en:', this.url);
 
         // Suscribir a los canales guardados
         if (this.subscribedChannels.size > 0) {
@@ -59,36 +102,34 @@ export class MarketWebSocketClient {
           const payload = JSON.parse(event.data);
           const type = payload.type || payload.action || (payload.channel ? payload.channel.split(':')[0] : 'general');
 
-          // Notificar por tipo
           const typeListeners = this.listeners.get(type);
           if (typeListeners) {
             typeListeners.forEach((fn) => fn(payload));
           }
 
-          // Notificar global
           const allListeners = this.listeners.get('*');
           if (allListeners) {
             allListeners.forEach((fn) => fn(payload));
           }
         } catch (e) {
-          console.error('[WebSocket] Error al procesar mensaje JSON:', e);
+          console.error('[WebSocket] Error al deserializar payload JSON:', e);
         }
       };
 
       this.ws.onerror = (err) => {
-        console.warn('[WebSocket] Error de conexión:', err);
-        this.onStatusChange?.('ERROR');
+        console.warn('[WebSocket] Error de socket:', err);
+        this.notifyStatus('ERROR');
       };
 
       this.ws.onclose = () => {
         this.stopHeartbeat();
-        this.onStatusChange?.('DISCONNECTED');
-        console.warn('[WebSocket] Conexión cerrada. Programando reconexión...');
+        this.notifyStatus('DISCONNECTED');
+        console.warn('[WebSocket] Conexión cerrada. Intentando reconectar...');
         this.scheduleReconnect();
       };
     } catch (err) {
-      console.error('[WebSocket] Error al instanciar socket:', err);
-      this.onStatusChange?.('ERROR');
+      console.error('[WebSocket] Error al crear WebSocket:', err);
+      this.notifyStatus('ERROR');
       this.scheduleReconnect();
     }
   }
@@ -165,7 +206,7 @@ export class MarketWebSocketClient {
       this.ws.close();
       this.ws = null;
     }
-    this.onStatusChange?.('DISCONNECTED');
+    this.notifyStatus('DISCONNECTED');
   }
 }
 

@@ -110,11 +110,47 @@ export async function triggerSignalEvaluation(symbol: string, timeframe: string 
   return normalizeSignal(raw);
 }
 
+export function normalizeNews(raw: any): NewsEvent {
+  const scoreNum = parseFloat(String(raw.sentiment_score ?? 0));
+  const score = isNaN(scoreNum) ? 0 : scoreNum;
+
+  let label = raw.sentiment_label;
+  if (!label) {
+    if (score >= 0.5) label = 'VERY_BULLISH';
+    else if (score >= 0.15) label = 'BULLISH';
+    else if (score <= -0.5) label = 'VERY_BEARISH';
+    else if (score <= -0.15) label = 'BEARISH';
+    else label = 'NEUTRAL';
+  }
+
+  const assets: string[] = Array.isArray(raw.related_assets)
+    ? raw.related_assets
+    : Array.isArray(raw.affected_assets)
+    ? raw.affected_assets
+    : [];
+
+  return {
+    id: String(raw.id || `news-${Date.now()}`),
+    title: raw.title || 'Actualización de mercado en vivo',
+    source: raw.source || 'MOTOR_PREDICTIVO',
+    url: raw.url || undefined,
+    published_at: raw.published_at || new Date().toISOString(),
+    sentiment_score: score,
+    sentiment_label: label,
+    confidence: Number(raw.confidence) || 0.85,
+    related_assets: assets,
+  };
+}
+
 export async function fetchNews(limit: number = 15): Promise<NewsEvent[]> {
   try {
     const res = await fetch(`${getApiBase()}/api/v1/news/?limit=${limit}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Failed to fetch news: ${res.statusText}`);
-    return await res.json();
+    const raw = await res.json();
+    if (Array.isArray(raw)) {
+      return raw.map(normalizeNews);
+    }
+    return [];
   } catch (err) {
     console.warn('[API] Fallback for news:', err);
     return [];

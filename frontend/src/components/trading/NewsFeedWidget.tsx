@@ -9,37 +9,49 @@ interface NewsFeedWidgetProps {
 }
 
 export const NewsFeedWidget: React.FC<NewsFeedWidgetProps> = ({ news }) => {
-  const getSentimentBadge = (label: string, score: number) => {
-    switch (label) {
+  const getSentimentBadge = (label?: string, score?: number | string) => {
+    const numScore = typeof score === 'number' ? score : parseFloat(String(score || 0)) || 0;
+    const formattedScore = numScore >= 0 ? `+${numScore.toFixed(2)}` : numScore.toFixed(2);
+
+    let activeLabel = label;
+    if (!activeLabel) {
+      if (numScore >= 0.5) activeLabel = 'VERY_BULLISH';
+      else if (numScore >= 0.15) activeLabel = 'BULLISH';
+      else if (numScore <= -0.5) activeLabel = 'VERY_BEARISH';
+      else if (numScore <= -0.15) activeLabel = 'BEARISH';
+      else activeLabel = 'NEUTRAL';
+    }
+
+    switch (activeLabel) {
       case 'VERY_BULLISH':
         return (
           <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-950/70 border border-emerald-500/50 text-emerald-300">
-            +{score.toFixed(2)} MUY ALCISTA
+            {formattedScore} MUY ALCISTA
           </span>
         );
       case 'BULLISH':
         return (
           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950/40 border border-emerald-500/30 text-emerald-400">
-            +{score.toFixed(2)} ALCISTA
+            {formattedScore} ALCISTA
           </span>
         );
       case 'VERY_BEARISH':
         return (
           <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-rose-950/70 border border-rose-500/50 text-rose-300">
-            {score.toFixed(2)} MUY BAJISTA
+            {formattedScore} MUY BAJISTA
           </span>
         );
       case 'BEARISH':
         return (
           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-950/40 border border-rose-500/30 text-rose-400">
-            {score.toFixed(2)} BAJISTA
+            {formattedScore} BAJISTA
           </span>
         );
       case 'NEUTRAL':
       default:
         return (
           <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-950/40 border border-amber-500/30 text-amber-400">
-            {score.toFixed(2)} NEUTRAL
+            {numScore.toFixed(2)} NEUTRAL
           </span>
         );
     }
@@ -84,7 +96,7 @@ export const NewsFeedWidget: React.FC<NewsFeedWidgetProps> = ({ news }) => {
                   <span className="px-1.5 py-0.5 rounded bg-[#0b0e14] text-slate-300 font-medium border border-[#242f42]">
                     {item.source}
                   </span>
-                  {item.related_assets?.map((a) => (
+                  {(item.related_assets || (item as any).affected_assets || []).map((a: string) => (
                     <span key={a} className="text-blue-400 font-bold">
                       #{a}
                     </span>
