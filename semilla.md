@@ -1,21 +1,24 @@
 # SEMILLA VIVA DE ESTADO (CHECKPOINT SEED)
 
-- **FECHA_HORA:** 2026-10-20T12:35:00-04:00
+- **FECHA_HORA:** 2026-10-20T12:45:00-04:00
 - **AGENTE_MODELO:** Gemini 3.8 Flash (High) / Antigravity AI Orchestrator
-- **ROL_ACTIVO:** quant-nlp-agent & frontend-terminal-agent
-- **FASE_ACTUAL:** Fase 2 (Concluida en Backend, Ingesta en Tiempo Real e IA) -> Preparación Fase 3 y 4
-- **ID_TAREA_ACTUAL:** 2.6, 2.7, 2.8 (COMPLETADAS) -> Siguiente: Fase 4 (Terminal del Trader y Gráficos) / Fase 3 (Dashboard Admin)
+- **ROL_ACTIVO:** devops-security-agent & frontend-terminal-agent
+- **FASE_ACTUAL:** Fase 1 y 2 Publicadas en GitHub (`main`) -> Inicio de Fase 4 (Terminal del Trader)
+- **ID_TAREA_ACTUAL:** Push Inicial Completado (`8b0585e`) -> Siguiente: Fase 4.1 y 4.2
 - **ESTADO_TAREA:** LISTO_PARA_INICIAR
 
 ---
 
 ## 1. ULTIMA ACCION COMPLETADA
+- **Despliegue a GitHub Exitoso (`https://github.com/eltavo1985/motorPredictivo`):**
+  - Commit `8b0585e`: 61 archivos sincronizados cubriendo infraestructura TimescaleDB, Ingesta Vector 1, FastAPI, NLP Sentimiento, Generador Cuantitativo de Señales y Gateway WebSocket `/ws/live`.
+  - Protocolo de seguridad `project-credentials-environments` aplicado (credenciales `.env` y token aislados; URL remota sanitizada).
 - **Fase 2 (2.1, 2.2, 2.6, 2.7, 2.8) 100% COMPLETADA Y VALIDADA:**
-  - Motor NLP de análisis de sentimiento financiero en tiempo real (`FinancialNLPEngine`) con detección de lemas, intensificadores y entidades de activos.
-  - Generador cuantitativo de señales predictivas (`SignalEngine`): ponderación 40% NLP + 35% Momentum + 25% Macro, niveles SL/TP calculados, explicabilidad completa en `trigger_factors JSONB` persistida en hipertabla `predictive_signals` y emitida a Redis.
+  - Motor NLP de análisis de sentimiento financiero en tiempo real (`FinancialNLPEngine`).
+  - Generador cuantitativo de señales predictivas (`SignalEngine`): ponderación 40% NLP + 35% Momentum + 25% Macro, niveles SL/TP calculados, explicabilidad completa en `trigger_factors JSONB`.
   - Endpoints REST para `/api/v1/news/` y `/api/v1/signals/` totalmente operativos.
   - Gateway WebSocket `/ws/live` implementado y probado con Starlette TestClient (suscripción bidireccional a canales Pub/Sub).
-  - Verificación en vivo [scripts/test_ai_signals.py](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/scripts/test_ai_signals.py) y [scripts/test_ws_gateway.py](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/scripts/test_ws_gateway.py) pasadas con 100% de éxito.
+
 
 ---
 

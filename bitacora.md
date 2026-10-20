@@ -181,6 +181,19 @@ Este documento registra cronológicamente los avances, eventos técnicos, acuerd
   - Señales Predictivas: Señal `BUY` para `BTC/USDT (5m)` generada con 60.98% de confianza, niveles calculados (Entrada $82,425.26, SL $80,776.75, TP $86,051.97) y `trigger_factors JSONB` verificado en base de datos.
   - Gateway WebSocket `/ws/live`: Conexión establecida, suscripciones dinámicas aceptadas y latencia cero.
 
+---
+
+### [2026-10-20 12:44] - [Gemini 3.8 Flash High] - [devops-security-agent]
+- **Fase / Tarea:** Despliegue de Código Fuente a Repositorio GitHub (`main`)
+- **Acción:**
+  1. Se verificó el cumplimiento estricto de la skill `project-credentials-environments`: exclusión de `.env`, `.venv/` y archivo `GitHub` con credenciales de token en `.gitignore`.
+  2. Se preparó el árbol de trabajo con 61 archivos (código de Fases 1 y 2, migraciones DDL, motores de ingesta e IA, skills y esquemas).
+  3. Se creó el commit inicial con hash `8b0585e` ("feat: Initial release - Phases 1 & 2 (TimescaleDB Hypertables, FastAPI, Ingestion Vector 1, AI Signals Engine, WebSockets)").
+  4. Se configuró el remoto seguro y se ejecutó `git push -u origin main` exitosamente hacia `https://github.com/eltavo1985/motorPredictivo.git`.
+  5. Se sanitizó la URL remota en la configuración local para evitar el almacenamiento del token en texto plano (`git remote set-url origin https://github.com/eltavo1985/motorPredictivo.git`).
+- **Estado:** COMPLETADO (Rama `main` sincronizada en GitHub).
+
+
 
 
 
