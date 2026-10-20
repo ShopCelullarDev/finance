@@ -1,0 +1,39 @@
+services:
+  timescaledb:
+    image: docker.io/timescale/timescaledb:latest-pg16
+    container_name: market_timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-market_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-market_secure_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-market_predictive_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data:Z
+      - ./database/init:/docker-entrypoint-initdb.d:ro,z
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-market_admin} -d ${POSTGRES_DB:-market_predictive_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: docker.io/library/redis:7-alpine
+    container_name: market_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data:Z
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  timescaledb_data:
+    driver: local
+  redis_data:
+    driver: local

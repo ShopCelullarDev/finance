@@ -1,0 +1,24 @@
+# FastAPI & ASGI Server
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.8.0
+pydantic-settings>=2.4.0
+
+# Database & Async Drivers
+sqlalchemy>=2.0.30
+asyncpg>=0.29.0
+greenlet>=3.0.0
+
+# Cache & Message Broker
+redis>=5.0.0
+
+# Utilities & Networking
+httpx>=0.27.0
+python-dotenv>=1.0.0
+python-multipart>=0.0.9
+
+# Ingesta en Tiempo Real & Exchanges
+ccxt>=4.3.0
+websockets>=12.0
+aiohttp>=3.9.0
+
