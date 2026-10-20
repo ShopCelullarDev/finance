@@ -193,6 +193,21 @@ Este documento registra cronológicamente los avances, eventos técnicos, acuerd
   5. Se sanitizó la URL remota en la configuración local para evitar el almacenamiento del token en texto plano (`git remote set-url origin https://github.com/eltavo1985/motorPredictivo.git`).
 - **Estado:** COMPLETADO (Rama `main` sincronizada en GitHub).
 
+---
+
+### [2026-10-20 16:05] - [Gemini 3.8 Flash High] - [frontend-terminal-agent]
+- **Fase / Tarea:** Fase 3 (Dashboard Admin y Telemetría) & Fase 4 (Terminal del Trader y TradingView Charts)
+- **Acción:**
+  1. Se inicializó la aplicación frontend con Next.js 15, TypeScript y TailwindCSS (App Router) en `frontend/` siguiendo los tokens de diseño institucional de la skill `corporate-identity-ui` (Dark Theme `#0b0e14`, acentos `#10b981`, `#ef4444`, tipografía `tabular-nums`).
+  2. Se integró `lightweight-charts` (v5) en [TradingViewChart.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/components/trading/TradingViewChart.tsx) con soporte para timeframes (1m a 1d), series de velas japonesas, histograma de volumen y líneas de niveles de IA (`entry_price`, `stop_loss`, `take_profit`).
+  3. Se construyó el feed de señales cuantitativas en tiempo real en [SignalsFeed.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/components/trading/SignalsFeed.tsx) con insignias de acción, barras de confianza y modal de explicabilidad [SignalDetailModal.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/components/common/SignalDetailModal.tsx) protegido contra cierre accidental por clic exterior (anti-backdrop dismissal).
+  4. Se desarrollaron los widgets financieros complementarios: [OrderbookWidget.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/components/trading/OrderbookWidget.tsx) (profundidad L2 y spread), [MacroSentimentWidget.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/components/trading/MacroSentimentWidget.tsx) (dial de sentimiento NLP y correlación multivariable) y [NewsFeedWidget.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/components/trading/NewsFeedWidget.tsx) (titulares clasificados por FinBERT).
+  5. Se implementó el panel de administración [TelemetryDashboard.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/components/admin/TelemetryDashboard.tsx) (Fase 3) con matriz de salud de 45+ fuentes de datos, KPIs de ingesta y estado de compresión de hypertables.
+  6. Se orquestó la comunicación en tiempo real mediante WebSocket con [websocket.ts](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/services/websocket.ts) conectado al Gateway `/ws/live`.
+  7. Se validó la compilación de producción con `npm run build` (0 errores, 4/4 páginas estáticas generadas).
+- **Estado:** COMPLETADO (Fase 3 y Fase 4 listas y verificadas).
+
+
 
 
 

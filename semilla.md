@@ -1,52 +1,58 @@
 # SEMILLA VIVA DE ESTADO (CHECKPOINT SEED)
 
-- **FECHA_HORA:** 2026-10-20T12:45:00-04:00
+- **FECHA_HORA:** 2026-10-20T16:10:00-04:00
 - **AGENTE_MODELO:** Gemini 3.8 Flash (High) / Antigravity AI Orchestrator
-- **ROL_ACTIVO:** devops-security-agent & frontend-terminal-agent
-- **FASE_ACTUAL:** Fase 1 y 2 Publicadas en GitHub (`main`) -> Inicio de Fase 4 (Terminal del Trader)
-- **ID_TAREA_ACTUAL:** Push Inicial Completado (`8b0585e`) -> Siguiente: Fase 4.1 y 4.2
+- **ROL_ACTIVO:** frontend-terminal-agent & seo-performance-agent
+- **FASE_ACTUAL:** Fases 1, 2, 3 y 4 COMPLETADAS -> Siguiente: Fase 5 (SEO, SSR y Core Web Vitals)
+- **ID_TAREA_ACTUAL:** Fases 3 y 4 Concluidas -> Siguiente: Fase 5.1, 5.2, 5.3
 - **ESTADO_TAREA:** LISTO_PARA_INICIAR
 
 ---
 
 ## 1. ULTIMA ACCION COMPLETADA
-- **Despliegue a GitHub Exitoso (`https://github.com/eltavo1985/motorPredictivo`):**
-  - Commit `8b0585e`: 61 archivos sincronizados cubriendo infraestructura TimescaleDB, Ingesta Vector 1, FastAPI, NLP Sentimiento, Generador Cuantitativo de Señales y Gateway WebSocket `/ws/live`.
-  - Protocolo de seguridad `project-credentials-environments` aplicado (credenciales `.env` y token aislados; URL remota sanitizada).
-- **Fase 2 (2.1, 2.2, 2.6, 2.7, 2.8) 100% COMPLETADA Y VALIDADA:**
-  - Motor NLP de análisis de sentimiento financiero en tiempo real (`FinancialNLPEngine`).
-  - Generador cuantitativo de señales predictivas (`SignalEngine`): ponderación 40% NLP + 35% Momentum + 25% Macro, niveles SL/TP calculados, explicabilidad completa en `trigger_factors JSONB`.
-  - Endpoints REST para `/api/v1/news/` y `/api/v1/signals/` totalmente operativos.
-  - Gateway WebSocket `/ws/live` implementado y probado con Starlette TestClient (suscripción bidireccional a canales Pub/Sub).
-
+- **Fase 4 (Terminal del Trader) & Fase 3 (Dashboard Admin y Telemetría) 100% COMPLETADAS:**
+  - Frontend inicializado con Next.js 15, TypeScript y TailwindCSS en `frontend/` respetando los tokens de la skill `corporate-identity-ui` (Dark Theme `#0b0e14`, acentos `#10b981` y `#ef4444`, tipografía `tabular-nums`).
+  - **TradingView Lightweight Charts v5** integrado con velas japonesas, histograma de volumen, timeframes y niveles dinámicos de IA (`entry_price`, `stop_loss`, `take_profit`).
+  - **Feed de Señales Predictivas** en tiempo real con barras de confianza e insignias de acción.
+  - **Modal de Explicabilidad de Señal (`SignalDetailModal`)** con protección anti-backdrop (no se cierra accidentalmente al hacer clic en el fondo) y visualizador de `trigger_factors JSONB`.
+  - **Widgets de Mercado:** Orderbook L2 con spread, dial de Sentimiento NLP ponderado, índice Fear & Greed, matriz de correlaciones macro y streaming de noticias.
+  - **Dashboard de Telemetría & Admin (Fase 3):** Matriz de salud de 45+ fuentes de datos, KPIs de ingesta, compresión de chunks en TimescaleDB y métricas de WebSocket / Redis.
+  - **Compilación de Producción:** Verificada con `npm run build` (0 errores, 4/4 páginas estáticas generadas). Servidor activo en `http://localhost:3000`.
 
 ---
 
 ## 2. ARCHIVOS MODIFICADOS RECIENTEMENTE
-- `app/services/ai/sentiment_nlp.py`
-- `app/services/ai/signal_engine.py`
-- `app/services/ai/__init__.py`
-- `app/api/v1/endpoints/news.py`
-- `app/api/v1/endpoints/signals.py`
-- `app/api/v1/endpoints/websockets.py`
-- `app/api/v1/router.py`
-- `app/main.py`
-- `scripts/test_ai_signals.py`
-- `scripts/test_ws_gateway.py`
+- `frontend/src/types/market.ts`
+- `frontend/src/services/api.ts`
+- `frontend/src/services/websocket.ts`
+- `frontend/src/components/common/Header.tsx`
+- `frontend/src/components/common/TickerTape.tsx`
+- `frontend/src/components/common/SignalDetailModal.tsx`
+- `frontend/src/components/trading/TradingViewChart.tsx`
+- `frontend/src/components/trading/SignalsFeed.tsx`
+- `frontend/src/components/trading/OrderbookWidget.tsx`
+- `frontend/src/components/trading/MacroSentimentWidget.tsx`
+- `frontend/src/components/trading/NewsFeedWidget.tsx`
+- `frontend/src/components/admin/TelemetryDashboard.tsx`
+- `frontend/src/app/page.tsx`
+- `frontend/src/app/globals.css`
+- `frontend/src/app/layout.tsx`
 - `pendiente.md`, `bitacora.md`, `semilla.md`
 
 ---
 
 ## 3. COMANDO DE VERIFICACION RAPIDA
 ```bash
-PYTHONPATH=. ./.venv/bin/python scripts/test_ai_signals.py && PYTHONPATH=. ./.venv/bin/python scripts/test_ws_gateway.py
+# Verificar compilación limpia del frontend
+cd frontend && npm run build
+# Comprobar respuesta HTTP del frontend y de la API
+curl -s -I http://127.0.0.1:3000 && curl -s http://127.0.0.1:8000/api/v1/health
 ```
-*(Debe reportar `[SUCCESS]` en ambas suites de validación).*
 
 ---
 
 ## 4. INSTRUCCION DE REANUDACION PARA EL PROXIMO AGENTE
-> **Ejecutar Fase 4.1 y 4.2 de [pendiente.md](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/pendiente.md) (Terminal del Trader):**
-> 1. Crear el frontend en `frontend/` usando Next.js / React con TypeScript y TailwindCSS (respetando los tokens de diseño institucional de la skill `corporate-identity-ui`: Dark Theme `#0b0e14`, acentos `#10b981` y `#ef4444`).
-> 2. Integrar **TradingView Lightweight Charts** conectándose al WebSocket Gateway `/ws/live` para renderizar velas japonesas y líneas de `entry_price`, `stop_loss` y `take_profit` en tiempo real.
-> 3. Construir el panel de señales predictivas y ticker tape en vivo.
+> **Ejecutar Fase 5 de [pendiente.md](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/pendiente.md) (Optimización SEO, SSR y Core Web Vitals):**
+> 1. Configurar rutas dinámicas SSR para activos `/market/[symbol]` en Next.js App Router para indexación en motores de búsqueda.
+> 2. Inyectar esquemas Schema.org JSON-LD (`FinancialProduct`, `Dataset`) y metadatos Open Graph.
+> 3. Auditar Core Web Vitals (LCP < 1.5s, CLS = 0, INP < 100ms) para garantizar reporte Lighthouse 90+.

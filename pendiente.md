@@ -70,37 +70,37 @@ Este documento registra todas las tareas de implementación divididas por fases.
 
 ## Fase 3: Desarrollo del Panel Administrativo (Dashboard)
 
-- [ ] **3.1 Monitor de Salud de Fuentes (Telemetry)** `Prioridad: Alta` `Agente: frontend-terminal-agent`
-  - [ ] Matriz de estado en vivo para las 45+ fuentes de datos (Online / Latencia ms / Errores).
-  - [ ] Alertas visuales ante desconexión de sockets de exchanges.
-- [ ] **3.2 Visor de Rendimiento de Hypertables** `Prioridad: Media` `Agente: frontend-terminal-agent`
-  - [ ] Panel con volumen de ticks ingeridos por segundo y tamaño de chunks en disco.
-  - [ ] Estado de compresión y uso de memoria de TimescaleDB y Redis.
-- [ ] **3.3 Consola de Control de Señales e IA** `Prioridad: Media` `Agente: frontend-terminal-agent`
-  - [ ] Registro histórico de señales generadas con detalle de `trigger_factors`.
-  - [ ] Botón de disparo manual o recalibración de umbrales de confianza.
-- [ ] **3.4 Gestión de Configuración y Claves API** `Prioridad: Baja` `Agente: frontend-terminal-agent`
-  - [ ] Panel para activar/desactivar pares de activos o fuentes específicas.
-  - [ ] Configuración segura de endpoints y tokens.
+- [x] **3.1 Monitor de Salud de Fuentes (Telemetry)** `Prioridad: Alta` `Agente: frontend-terminal-agent`
+  - [x] Matriz de estado en vivo para las 45+ fuentes de datos (Online / Latencia ms / Errores).
+  - [x] Alertas visuales ante desconexión de sockets de exchanges.
+- [x] **3.2 Visor de Rendimiento de Hypertables** `Prioridad: Media` `Agente: frontend-terminal-agent`
+  - [x] Panel con volumen de ticks ingeridos por segundo y tamaño de chunks en disco.
+  - [x] Estado de compresión y uso de memoria de TimescaleDB y Redis.
+- [x] **3.3 Consola de Control de Señales e IA** `Prioridad: Media` `Agente: frontend-terminal-agent`
+  - [x] Registro histórico de señales generadas con detalle de `trigger_factors`.
+  - [x] Botón de disparo manual o recalibración de umbrales de confianza.
+- [x] **3.4 Gestión de Configuración y Claves API** `Prioridad: Baja` `Agente: frontend-terminal-agent`
+  - [x] Panel para activar/desactivar pares de activos o fuentes específicas.
+  - [x] Configuración segura de endpoints y tokens.
 
 ---
 
 ## Fase 4: Frontend y Terminal del Trader
 
-- [ ] **4.1 Base de Frontend y Diseño Institucional** `Prioridad: Alta` `Agente: frontend-terminal-agent`
-  - [ ] Configuración de Next.js (TypeScript, TailwindCSS, Dark Theme ergonómico).
-  - [ ] Sistema de layout adaptable para pantallas de trading multi-monitor y laptops.
-- [ ] **4.2 Integración de Gráficos Interactivos** `Prioridad: Alta` `Agente: frontend-terminal-agent`
-  - [ ] Integración de TradingView Lightweight Charts con velas japonesas en tiempo real.
-  - [ ] Soporte para timeframes (1m, 5m, 15m, 1h, 4h, 1d).
-  - [ ] Capa de visualización de señales predictivas sobre el gráfico (flechas de entrada, líneas de SL/TP).
-- [ ] **4.3 Orderbook, Depth Chart y Feed en Tiempo Real** `Prioridad: Media` `Agente: frontend-terminal-agent`
-  - [ ] Widget de libro de órdenes simplificado o spread de mercado.
-  - [ ] Feed en vivo de señales predictivas con filtrado por activo y nivel de confianza.
-  - [ ] Ticker tape con precios y variaciones porcentuales 24h.
-- [ ] **4.4 Panel de Sentimiento Macro y Correlaciones** `Prioridad: Media` `Agente: frontend-terminal-agent`
-  - [ ] Medidor tipo "Gauge" del sentimiento global del mercado (Fear & Greed / NLP Sentiment).
-  - [ ] Tabla de correlaciones entre Cripto (BTC) y Macro (DXY, Petróleo, Oro, SP500).
+- [x] **4.1 Base de Frontend y Diseño Institucional** `Prioridad: Alta` `Agente: frontend-terminal-agent`
+  - [x] Configuración de Next.js (TypeScript, TailwindCSS, Dark Theme ergonómico).
+  - [x] Sistema de layout adaptable para pantallas de trading multi-monitor y laptops.
+- [x] **4.2 Integración de Gráficos Interactivos** `Prioridad: Alta` `Agente: frontend-terminal-agent`
+  - [x] Integración de TradingView Lightweight Charts con velas japonesas en tiempo real.
+  - [x] Soporte para timeframes (1m, 5m, 15m, 1h, 4h, 1d).
+  - [x] Capa de visualización de señales predictivas sobre el gráfico (flechas de entrada, líneas de SL/TP).
+- [x] **4.3 Orderbook, Depth Chart y Feed en Tiempo Real** `Prioridad: Media` `Agente: frontend-terminal-agent`
+  - [x] Widget de libro de órdenes simplificado o spread de mercado.
+  - [x] Feed en vivo de señales predictivas con filtrado por activo y nivel de confianza.
+  - [x] Ticker tape con precios y variaciones porcentuales 24h.
+- [x] **4.4 Panel de Sentimiento Macro y Correlaciones** `Prioridad: Media` `Agente: frontend-terminal-agent`
+  - [x] Medidor tipo "Gauge" del sentimiento global del mercado (Fear & Greed / NLP Sentiment).
+  - [x] Tabla de correlaciones entre Cripto (BTC) y Macro (DXY, Petróleo, Oro, SP500).
 
 ---
 
