@@ -95,7 +95,9 @@ async def root():
     return {
         "message": "Market Predictive Engine API is running",
         "version": "1.0.0",
+        "frontend_terminal": "http://localhost:3000",
         "docs": "/docs",
         "health": "/health",
         "api_v1": "/api/v1",
     }
+
