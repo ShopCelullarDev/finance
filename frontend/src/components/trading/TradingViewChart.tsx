@@ -13,7 +13,7 @@ import {
   Time,
 } from 'lightweight-charts';
 import { CandleData, PredictiveSignal } from '@/types/market';
-import { Maximize2, BarChart2, Layers } from 'lucide-react';
+import { Layers } from 'lucide-react';
 
 interface TradingViewChartProps {
   symbol: string;
@@ -34,41 +34,41 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null);
-  
+
   const entryLineRef = useRef<IPriceLine | null>(null);
   const slLineRef = useRef<IPriceLine | null>(null);
   const tpLineRef = useRef<IPriceLine | null>(null);
 
   const [overlaySignals, setOverlaySignals] = useState(true);
 
-  // Timeframes disponibles
   const timeframes = ['1m', '5m', '15m', '1h', '4h', '1d'];
 
-  // Generador de velas sintéticas iniciales según el símbolo y precio actual
+  // Generador determinístico de velas iniciales según el activo
   const generateInitialData = (basePrice: number): { candles: CandleData[]; volumes: any[] } => {
     const candles: CandleData[] = [];
     const volumes: any[] = [];
     const now = Math.floor(Date.now() / 1000);
     const intervalSecs = timeframe === '1m' ? 60 : timeframe === '5m' ? 300 : timeframe === '15m' ? 900 : timeframe === '1h' ? 3600 : timeframe === '4h' ? 14400 : 86400;
 
-    const count = 100;
-    let price = basePrice * 0.96;
+    const count = 120;
+    let price = basePrice * 0.94;
 
     for (let i = count; i >= 0; i--) {
       const time = (now - i * intervalSecs) as Time;
-      const volatility = basePrice * 0.003;
-      const delta = (Math.random() - 0.49) * volatility;
+      const step = ((i * 19) % 29) / 100 - 0.14; // Fluctuación determinista
+      const volatility = basePrice * 0.0025;
       const open = price;
+      const delta = step * volatility;
       const close = Math.max(1, open + delta);
-      const high = Math.max(open, close) + Math.random() * volatility * 0.5;
-      const low = Math.min(open, close) - Math.random() * volatility * 0.5;
-      const volume = Math.floor(Math.random() * 80) + 10;
+      const high = Math.max(open, close) + (((i * 7) % 11) / 10) * volatility * 0.4;
+      const low = Math.min(open, close) - (((i * 13) % 11) / 10) * volatility * 0.4;
+      const volume = 20 + ((i * 31) % 65);
 
       candles.push({ time: time as any, open, high, low, close, volume });
       volumes.push({
         time: time as any,
         value: volume,
-        color: close >= open ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)',
+        color: close >= open ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)',
       });
 
       price = close;
@@ -77,21 +77,22 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
     return { candles, volumes };
   };
 
-  // Inicializar Gráfico de TradingView
+  // Inicializar Gráfico con ResizeObserver robusto
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    // Limpiar previo si existe
     if (chartRef.current) {
       chartRef.current.remove();
       chartRef.current = null;
     }
 
     const container = chartContainerRef.current;
+    const initialWidth = container.clientWidth || 800;
+    const initialHeight = container.clientHeight || 440;
 
     const chart = createChart(container, {
-      width: container.clientWidth,
-      height: container.clientHeight,
+      width: initialWidth,
+      height: initialHeight,
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#94a3b8',
@@ -103,7 +104,7 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
         horzLines: { color: 'rgba(36, 47, 66, 0.4)' },
       },
       crosshair: {
-        mode: 1, // CrosshairMode.Normal
+        mode: 1,
         vertLine: {
           color: '#3b82f6',
           width: 1,
@@ -130,7 +131,7 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
 
     chartRef.current = chart;
 
-    // Serie de Velas Japonesas
+    // Serie de Velas
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#10b981',
       downColor: '#ef4444',
@@ -142,36 +143,38 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
     });
     candleSeriesRef.current = candlestickSeries;
 
-    // Serie de Volumen (Histograma)
+    // Serie de Volumen
     const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
-      priceScaleId: '', // Escala propia secundaria
+      priceScaleId: '',
     });
     volumeSeries.priceScale().applyOptions({
       scaleMargins: { top: 0.8, bottom: 0 },
     });
     volumeSeriesRef.current = volumeSeries;
 
-    // Cargar datos sintéticos iniciales
+    // Cargar datos
     const refPrice = currentPrice || (symbol === 'BTC/USDT' ? 82450 : symbol === 'ETH/USDT' ? 2450 : symbol === 'SOL/USDT' ? 145 : 100);
     const { candles, volumes } = generateInitialData(refPrice);
     candlestickSeries.setData(candles as any);
     volumeSeries.setData(volumes as any);
 
-    // Observer de Redimensionado
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.resize(
-          chartContainerRef.current.clientWidth,
-          chartContainerRef.current.clientHeight
-        );
-      }
-    };
+    // Ajustar velas a la pantalla
+    chart.timeScale().fitContent();
 
-    window.addEventListener('resize', handleResize);
+    // ResizeObserver para adaptar al contenedor inmediatamente
+    const resizeObserver = new ResizeObserver((entries) => {
+      if (!entries || entries.length === 0) return;
+      const { width, height } = entries[0].contentRect;
+      if (width > 0 && height > 0 && chartRef.current) {
+        chartRef.current.resize(width, height);
+      }
+    });
+
+    resizeObserver.observe(container);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       if (chartRef.current) {
         chartRef.current.remove();
         chartRef.current = null;
@@ -179,7 +182,7 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
     };
   }, [symbol, timeframe]);
 
-  // Actualizar el gráfico con el precio en tiempo real (ticks entrantes)
+  // Actualizar último precio en tiempo real
   useEffect(() => {
     if (!candleSeriesRef.current || !currentPrice) return;
 
@@ -195,16 +198,15 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
     try {
       candleSeriesRef.current.update(lastBar);
     } catch {
-      // Ignorar si el timestamp se superpone
+      // Ignorar superposición de timestamps
     }
   }, [currentPrice]);
 
-  // Renderizar o actualizar líneas de Señal Predictiva (Entry, Stop Loss, Take Profit)
+  // Renderizar o actualizar líneas de Señal Predictiva (Entry, SL, TP)
   useEffect(() => {
     const series = candleSeriesRef.current;
     if (!series) return;
 
-    // Limpiar líneas anteriores
     if (entryLineRef.current) {
       try { series.removePriceLine(entryLineRef.current); } catch {}
       entryLineRef.current = null;
@@ -218,45 +220,56 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
       tpLineRef.current = null;
     }
 
-    if (!overlaySignals || !activeSignal) return;
+    if (!overlaySignals || !activeSignal || !activeSignal.entry_price) return;
 
     try {
-      // Línea de Entrada (Azul)
       entryLineRef.current = series.createPriceLine({
-        price: activeSignal.entry_price,
+        price: Number(activeSignal.entry_price),
         color: '#3b82f6',
         lineWidth: 2,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
-        title: `ENTRADA AI (${activeSignal.action})`,
+        title: `ENTRADA AI (${activeSignal.action || 'SIGNAL'})`,
       });
 
-      // Línea de Take Profit (Verde)
-      tpLineRef.current = series.createPriceLine({
-        price: activeSignal.take_profit,
-        color: '#10b981',
-        lineWidth: 2,
-        lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
-        title: `TAKE PROFIT (+${(((activeSignal.take_profit / activeSignal.entry_price) - 1) * 100).toFixed(2)}%)`,
-      });
+      if (activeSignal.take_profit) {
+        const tpVal = Number(activeSignal.take_profit);
+        const gainPct = (((tpVal / Number(activeSignal.entry_price)) - 1) * 100).toFixed(2);
+        tpLineRef.current = series.createPriceLine({
+          price: tpVal,
+          color: '#10b981',
+          lineWidth: 2,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: `TAKE PROFIT (+${gainPct}%)`,
+        });
+      }
 
-      // Línea de Stop Loss (Rojo)
-      slLineRef.current = series.createPriceLine({
-        price: activeSignal.stop_loss,
-        color: '#ef4444',
-        lineWidth: 2,
-        lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
-        title: `STOP LOSS (${(((activeSignal.stop_loss / activeSignal.entry_price) - 1) * 100).toFixed(2)}%)`,
-      });
+      if (activeSignal.stop_loss) {
+        const slVal = Number(activeSignal.stop_loss);
+        const lossPct = (((slVal / Number(activeSignal.entry_price)) - 1) * 100).toFixed(2);
+        slLineRef.current = series.createPriceLine({
+          price: slVal,
+          color: '#ef4444',
+          lineWidth: 2,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: `STOP LOSS (${lossPct}%)`,
+        });
+      }
     } catch (e) {
       console.warn('[TradingViewChart] Error al renderizar price lines de señal:', e);
     }
   }, [activeSignal, overlaySignals]);
 
+  const isBuyAction = activeSignal?.action?.includes('BUY');
+  const actionLabel = activeSignal?.action || 'HOLD';
+  const confidence = typeof activeSignal?.confidence_score === 'number'
+    ? activeSignal.confidence_score.toFixed(1)
+    : '75.0';
+
   return (
-    <div className="flex flex-col h-full bg-[#131923] border border-[#242f42] rounded-xl overflow-hidden shadow-lg">
+    <div className="flex flex-col h-full min-h-[480px] bg-[#131923] border border-[#242f42] rounded-xl overflow-hidden shadow-lg select-none">
       {/* Chart Control Bar */}
       <div className="flex flex-wrap items-center justify-between px-4 py-2.5 border-b border-[#242f42] bg-[#0f141d]">
         {/* Symbol Info */}
@@ -311,19 +324,19 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
       </div>
 
       {/* Chart Canvas */}
-      <div className="relative flex-1 w-full min-h-[420px]">
-        <div ref={chartContainerRef} className="absolute inset-0 w-full h-full" />
+      <div className="relative flex-1 w-full min-h-[420px] h-[440px]">
+        <div ref={chartContainerRef} className="w-full h-full" />
 
         {/* Signal Overlay Banner if active */}
         {overlaySignals && activeSignal && (
           <div className="absolute top-3 left-4 z-10 flex items-center gap-2 bg-[#0b0e14]/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-blue-500/30 text-xs shadow-lg">
             <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
             <span className="text-slate-300">Señal IA Activa:</span>
-            <span className={`font-bold ${activeSignal.action.includes('BUY') ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {activeSignal.action}
+            <span className={`font-bold ${isBuyAction ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {actionLabel}
             </span>
             <span className="font-mono tabular-nums text-slate-400">
-              ({activeSignal.confidence_score.toFixed(1)}% conf)
+              ({confidence}% conf)
             </span>
           </div>
         )}

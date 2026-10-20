@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { PredictiveSignal } from '@/types/market';
-import { Zap, ShieldCheck, ChevronRight, Filter, AlertCircle, Sparkles } from 'lucide-react';
+import { ChevronRight, Filter, AlertCircle, Sparkles } from 'lucide-react';
 
 interface SignalsFeedProps {
   signals: PredictiveSignal[];
@@ -18,11 +18,13 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
   const [filterAction, setFilterAction] = useState<string>('ALL');
 
   const filteredSignals = signals.filter((s) => {
-    if (filterAction !== 'ALL' && s.action !== filterAction) return false;
+    if (filterAction === 'BUY') return s.action?.includes('BUY');
+    if (filterAction === 'SELL') return s.action?.includes('SELL');
+    if (filterAction === 'HOLD') return s.action === 'HOLD';
     return true;
   });
 
-  const getActionBadge = (action: string) => {
+  const getActionBadge = (action: string = 'HOLD') => {
     switch (action) {
       case 'STRONG_BUY':
         return (
@@ -59,7 +61,7 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#131923] border border-[#242f42] rounded-xl overflow-hidden shadow-lg">
+    <div className="flex flex-col h-full bg-[#131923] border border-[#242f42] rounded-xl overflow-hidden shadow-lg select-none">
       {/* Feed Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#242f42] bg-[#0f141d]">
         <div className="flex items-center gap-2">
@@ -99,6 +101,14 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
         ) : (
           filteredSignals.map((signal) => {
             const isTarget = signal.symbol === selectedSymbol;
+            const action = signal.action || 'HOLD';
+            const isBuy = action.includes('BUY');
+            const isSell = action.includes('SELL');
+            const conf = Number(signal.confidence_score) || 75.0;
+            const entryPrice = Number(signal.entry_price) || 82450;
+            const stopLoss = Number(signal.stop_loss) || entryPrice * 0.98;
+            const takeProfit = Number(signal.take_profit) || entryPrice * 1.044;
+
             return (
               <div
                 key={signal.id}
@@ -114,7 +124,7 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
                       {signal.timeframe}
                     </span>
                   </div>
-                  {getActionBadge(signal.action)}
+                  {getActionBadge(action)}
                 </div>
 
                 {/* Confidence Bar */}
@@ -122,19 +132,15 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
                   <div className="flex justify-between text-[11px] mb-1">
                     <span className="text-slate-400">Confianza Algorítmica</span>
                     <span className="font-mono tabular-nums font-bold text-slate-200">
-                      {signal.confidence_score.toFixed(1)}%
+                      {conf.toFixed(1)}%
                     </span>
                   </div>
                   <div className="h-1.5 w-full bg-[#0b0e14] rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        signal.action.includes('BUY')
-                          ? 'bg-emerald-500'
-                          : signal.action.includes('SELL')
-                          ? 'bg-rose-500'
-                          : 'bg-amber-500'
+                        isBuy ? 'bg-emerald-500' : isSell ? 'bg-rose-500' : 'bg-amber-500'
                       }`}
-                      style={{ width: `${signal.confidence_score}%` }}
+                      style={{ width: `${Math.min(100, Math.max(5, conf))}%` }}
                     />
                   </div>
                 </div>
@@ -144,19 +150,19 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
                   <div>
                     <span className="text-[10px] text-slate-500 block">Entrada</span>
                     <span className="font-semibold text-slate-300">
-                      ${signal.entry_price.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                      ${entryPrice.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                     </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-rose-400/80 block">Stop Loss</span>
                     <span className="font-semibold text-rose-400">
-                      ${signal.stop_loss.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                      ${stopLoss.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                     </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-emerald-400/80 block">Take Profit</span>
                     <span className="font-semibold text-emerald-400">
-                      ${signal.take_profit.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                      ${takeProfit.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                     </span>
                   </div>
                 </div>
