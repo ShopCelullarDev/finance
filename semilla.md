@@ -1,23 +1,21 @@
 # SEMILLA VIVA DE ESTADO (CHECKPOINT SEED)
 
-- **FECHA_HORA:** 2026-10-20T16:10:00-04:00
+- **FECHA_HORA:** 2026-10-20T16:35:00-04:00
 - **AGENTE_MODELO:** Gemini 3.8 Flash (High) / Antigravity AI Orchestrator
-- **ROL_ACTIVO:** frontend-terminal-agent & seo-performance-agent
-- **FASE_ACTUAL:** Fases 1, 2, 3 y 4 COMPLETADAS -> Siguiente: Fase 5 (SEO, SSR y Core Web Vitals)
-- **ID_TAREA_ACTUAL:** Fases 3 y 4 Concluidas -> Siguiente: Fase 5.1, 5.2, 5.3
+- **ROL_ACTIVO:** devops-security-agent & frontend-terminal-agent
+- **FASE_ACTUAL:** Fases 1 a 4 Concluidas y Desplegadas en GitHub (`main`) -> Inicio de Fase 5
+- **ID_TAREA_ACTUAL:** Commit `7e6180b` Sincronizado en `origin/main` -> Siguiente: Fase 5.1
 - **ESTADO_TAREA:** LISTO_PARA_INICIAR
 
 ---
 
 ## 1. ULTIMA ACCION COMPLETADA
-- **Fase 4 (Terminal del Trader) & Fase 3 (Dashboard Admin y Telemetría) 100% COMPLETADAS:**
-  - Frontend inicializado con Next.js 15, TypeScript y TailwindCSS en `frontend/` respetando los tokens de la skill `corporate-identity-ui` (Dark Theme `#0b0e14`, acentos `#10b981` y `#ef4444`, tipografía `tabular-nums`).
-  - **TradingView Lightweight Charts v5** integrado con velas japonesas, histograma de volumen, timeframes y niveles dinámicos de IA (`entry_price`, `stop_loss`, `take_profit`).
-  - **Feed de Señales Predictivas** en tiempo real con barras de confianza e insignias de acción.
-  - **Modal de Explicabilidad de Señal (`SignalDetailModal`)** con protección anti-backdrop (no se cierra accidentalmente al hacer clic en el fondo) y visualizador de `trigger_factors JSONB`.
-  - **Widgets de Mercado:** Orderbook L2 con spread, dial de Sentimiento NLP ponderado, índice Fear & Greed, matriz de correlaciones macro y streaming de noticias.
-  - **Dashboard de Telemetría & Admin (Fase 3):** Matriz de salud de 45+ fuentes de datos, KPIs de ingesta, compresión de chunks en TimescaleDB y métricas de WebSocket / Redis.
-  - **Compilación de Producción:** Verificada con `npm run build` (0 errores, 4/4 páginas estáticas generadas). Servidor activo en `http://localhost:3000`.
+- **Terminal de Trading y Telemetría 100% Funcionales y Publicadas (`https://github.com/eltavo1985/motorPredictivo`):**
+  - Corrección de conexión WebSocket con hostname dinámico (`127.0.0.1` / `localhost`).
+  - Renderizado garantizado de TradingView con `ResizeObserver` reactivo y centrado `fitContent()`.
+  - Normalización de datos para señales de IA (compatibilidad con `action_suggested` y parsing de números decimales).
+  - Repositorio GitHub actualizado en `origin/main` (commit `7e6180b`).
+
 
 ---
 

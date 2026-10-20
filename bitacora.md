@@ -207,6 +207,18 @@ Este documento registra cronológicamente los avances, eventos técnicos, acuerd
   7. Se validó la compilación de producción con `npm run build` (0 errores, 4/4 páginas estáticas generadas).
 - **Estado:** COMPLETADO (Fase 3 y Fase 4 listas y verificadas).
 
+---
+
+### [2026-10-20 16:32] - [Gemini 3.8 Flash High] - [frontend-terminal-agent & devops-security-agent]
+- **Fase / Tarea:** Corrección de Inicialización de WebSocket, Redimensionamiento de Gráficos y Normalización de Señales
+- **Acción:**
+  1. Se actualizó [websocket.ts](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/services/websocket.ts) para resolver la URL de forma dinámica mediante `window.location.hostname` (`ws://${window.location.hostname}:8000/ws/live`), permitiendo la conexión indistinta vía `localhost` o `127.0.0.1`.
+  2. Se reparó [TradingViewChart.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/components/trading/TradingViewChart.tsx) asignando altura explícita (`min-h-[420px] h-[440px]`), integrando `ResizeObserver` reactivo e invocando `chart.timeScale().fitContent()` para asegurar el renderizado inmediato de las velas y volumen.
+  3. Se creó la función `normalizeSignal()` en [api.ts](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/services/api.ts) y se blindó [SignalsFeed.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/components/trading/SignalsFeed.tsx) con parsing seguro de números y compatibilidad con `action_suggested`.
+  4. Se confirmó la compilación con `npm run build` (0 errores) y se subieron los cambios a GitHub en el commit `7e6180b`.
+- **Estado:** COMPLETADO (Terminal funcional y repositorio sincronizado).
+
+
 
 
 
