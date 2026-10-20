@@ -218,6 +218,20 @@ Este documento registra cronológicamente los avances, eventos técnicos, acuerd
   4. Se confirmó la compilación con `npm run build` (0 errores) y se subieron los cambios a GitHub en el commit `7e6180b`.
 - **Estado:** COMPLETADO (Terminal funcional y repositorio sincronizado).
 
+---
+
+### [2026-10-20 17:10] - [Gemini 3.8 Flash High] - [frontend-terminal-agent & devops-security-agent]
+- **Fase / Tarea:** Resolución de Crash en Renderizado (TypeError: toFixed), Endpoint Overview y Cierre de Sesión
+- **Acción:**
+  1. Se localizó la causa raíz del bloqueo de pantalla en "CONECTANDO" y gráfico vacío: el componente [NewsFeedWidget.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/components/trading/NewsFeedWidget.tsx) ejecutaba `score.toFixed(2)` sobre un string decimal devuelto por el backend (`"-0.650"`), arrojando `Uncaught TypeError: score.toFixed is not a function` y congelando el árbol de render de React.
+  2. Se creó la función `normalizeNews()` en [api.ts](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/services/api.ts) y se aplicó en `fetchNews()` y en el listener de WebSocket para convertir con seguridad `sentiment_score` a número flotante y computar `sentiment_label` automáticamente cuando no venga en el payload.
+  3. Se blindó [NewsFeedWidget.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/components/trading/NewsFeedWidget.tsx) con parsing defensivo ante cualquier tipo de dato y mapeo dual para `related_assets` y `affected_assets`.
+  4. Se implementó en [telemetry.py](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/app/api/v1/endpoints/telemetry.py) el endpoint `/api/v1/telemetry/overview` en FastAPI para eliminar los 404 y servir métricas en vivo consolidadas de la base de datos, Redis, buffer y conectores.
+  5. Se implementó `addStatusListener` en [websocket.ts](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/services/websocket.ts) que despacha de inmediato el estado del socket (`CONNECTED`) apenas un componente se suscribe.
+  6. Se configuró `allowedDevOrigins` en [next.config.ts](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/next.config.ts) para permitir Turbopack HMR sobre `127.0.0.1`.
+  7. Se validó la compilación de producción con `npm run build` (0 errores) y se ejecutó `git push` a `main` en [GitHub](https://github.com/eltavo1985/motorPredictivo).
+- **Estado:** COMPLETADO (Todo guardado, sincronizado y listo para reanudar con Fase 5).
+
 
 
 
