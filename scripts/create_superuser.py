@@ -31,18 +31,22 @@ CREATE TABLE IF NOT EXISTS users (
     locked_until TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_login_at TIMESTAMPTZ
-);
-
-CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+)
 """
+
+INDEX_SQL_STATEMENTS = [
+    "CREATE INDEX IF NOT EXISTS idx_users_username ON users (username)",
+    "CREATE INDEX IF NOT EXISTS idx_users_email ON users (email)",
+]
 
 
 async def init_users_table():
     """Garantiza que la tabla 'users' exista en PostgreSQL / TimescaleDB."""
     async with engine.begin() as conn:
         await conn.execute(text(CREATE_USERS_TABLE_SQL))
-    print("[DB] Tabla 'users' verificada/creada exitosamente.")
+        for idx_sql in INDEX_SQL_STATEMENTS:
+            await conn.execute(text(idx_sql))
+    print("[DB] Tabla 'users' e índices verificados/creados exitosamente.")
 
 
 async def create_or_update_superuser(username: str, email: str, password: str, role: str = "admin"):
