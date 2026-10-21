@@ -1,3 +1,5 @@
+import { authService } from './auth';
+
 export type MessageHandler = (data: any) => void;
 
 export type ConnectionStatus = 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR';
@@ -53,11 +55,13 @@ export class MarketWebSocketClient {
   }
 
   private resolveUrl(): string {
+    const token = typeof window !== 'undefined' ? authService.getAccessToken() : null;
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
     if (typeof window !== 'undefined') {
       const host = window.location.hostname || '127.0.0.1';
-      return `ws://${host}:8000/ws/live`;
+      return `ws://${host}:8000/ws/live${query}`;
     }
-    return 'ws://127.0.0.1:8000/ws/live';
+    return `ws://127.0.0.1:8000/ws/live${query}`;
   }
 
   public connect(): void {
@@ -121,9 +125,14 @@ export class MarketWebSocketClient {
         this.notifyStatus('ERROR');
       };
 
-      this.ws.onclose = () => {
+      this.ws.onclose = (event: CloseEvent) => {
         this.stopHeartbeat();
         this.notifyStatus('DISCONNECTED');
+        if (event.code === 1008 || event.code === 4001) {
+          console.warn('[WebSocket] Conexión denegada por política o autenticación (1008/4001).');
+          this.notifyStatus('ERROR');
+          return;
+        }
         console.warn('[WebSocket] Conexión cerrada. Intentando reconectar...');
         this.scheduleReconnect();
       };

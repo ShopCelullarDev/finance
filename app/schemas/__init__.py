@@ -7,6 +7,16 @@ from app.schemas.predictive_signal import (
     PredictiveSignalCreate,
     PredictiveSignalResponse,
 )
+from app.schemas.user import (
+    LoginRequest,
+    RefreshTokenRequest,
+    TokenResponse,
+    UserBase,
+    UserCreate,
+    UserResponse,
+    UserUpdate,
+    WSTicketResponse,
+)
 
 __all__ = [
     "AssetBase",
@@ -23,4 +33,12 @@ __all__ = [
     "PredictiveSignalBase",
     "PredictiveSignalCreate",
     "PredictiveSignalResponse",
+    "LoginRequest",
+    "RefreshTokenRequest",
+    "TokenResponse",
+    "UserBase",
+    "UserCreate",
+    "UserResponse",
+    "UserUpdate",
+    "WSTicketResponse",
 ]

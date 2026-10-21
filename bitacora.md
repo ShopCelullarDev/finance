@@ -232,6 +232,33 @@ Este documento registra cronológicamente los avances, eventos técnicos, acuerd
   7. Se validó la compilación de producción con `npm run build` (0 errores) y se ejecutó `git push` a `main` en [GitHub](https://github.com/eltavo1985/motorPredictivo).
 - **Estado:** COMPLETADO (Todo guardado, sincronizado y listo para reanudar con Fase 5).
 
+---
+
+### [2026-10-21 11:06] - [Gemini 3.8 Flash High] - [devops-security-agent & backend-fastapi-agent]
+- **Fase / Tarea:** Fase 5 - Pivote a Arquitectura Privada, Resiliencia de Estado y Control de Acceso (Zero-Leak)
+- **Acción:**
+  1. **Protocolo Canónico de Estado:** Se crearon los archivos canónicos [PROJECT_STATE.md](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/PROJECT_STATE.md) y [checkpoint.json](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/checkpoint.json) para garantizar recuperación instantánea de contexto ante cortes de energía o traspaso de modelos LLM.
+  2. **Bloqueo Total de Indexación (Anti-SEO):**
+     - Se creó [robots.ts](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/app/robots.ts) con regla `Disallow: /`.
+     - Se inyectaron cabeceras HTTP `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet, noimageindex, nocache`, `X-Frame-Options: DENY` y `X-Content-Type-Options: nosniff` en [next.config.ts](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/next.config.ts).
+     - Se añadieron metadatos `robots` restrictivos en [layout.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/app/layout.tsx).
+     - Se añadió middleware de cabeceras de privacidad y endpoint `/robots.txt` en [app/main.py](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/app/main.py).
+  3. **Criptografía y Modelo de Usuarios:**
+     - Se implementó hashing robusto SHA-256 pre-hasheado con Bcrypt (12 rondas de sal) en [app/core/security.py](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/app/core/security.py).
+     - Se creó el modelo SQLAlchemy `User` en [app/models/user.py](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/app/models/user.py) y el script DDL [04_create_users.sql](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/database/init/04_create_users.sql).
+     - Se construyó el CLI [scripts/create_superuser.py](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/scripts/create_superuser.py) para gestión segura de credenciales maestras.
+  4. **Tokens Duales, Redis y Rate Limiting:**
+     - Se desarrolló [app/services/auth_service.py](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/app/services/auth_service.py) con almacenamiento y revocación de Refresh Tokens (7 días) en Redis, limitador de tasa (máx. 5 intentos / 5 minutos) y generación de tickets efímeros (60s) para WebSockets.
+     - Se crearon los endpoints en [app/api/v1/endpoints/auth.py](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/app/api/v1/endpoints/auth.py) (`/login`, `/refresh`, `/logout`, `/me`, `/ws-ticket`) y dependencias en [app/api/deps.py](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/app/api/deps.py).
+     - Se aseguró el Gateway de WebSockets [app/api/v1/endpoints/websockets.py](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/app/api/v1/endpoints/websockets.py) exigiendo token o ticket válido (código de rechazo 1008/4001).
+  5. **Gate UI/UX del Terminal:**
+     - Se implementó el middleware Edge [frontend/src/middleware.ts](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/middleware.ts) que intercepta rutas privadas y redirige a `/login`.
+     - Se construyó la pantalla de autenticación [frontend/src/app/login/page.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/app/login/page.tsx) con estética institucional Dark Fintech.
+     - Se creó el contexto [frontend/src/context/AuthContext.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/context/AuthContext.tsx) con refresco automático de sesión y controles en [Header.tsx](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/components/common/Header.tsx).
+     - Se configuró el cliente [frontend/src/services/websocket.ts](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/services/websocket.ts) para autenticación por token.
+- **Estado:** COMPLETADO_VERIFICADO (Build Next.js con 0 errores y pruebas unitarias de backend aprobadas).
+
+
 
 
 

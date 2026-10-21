@@ -3,12 +3,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # Entorno y Seguridad
+    # Entorno y Seguridad Privada
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
-    SECRET_KEY: str = "default_secret_key"
+    DOCS_ENABLED: bool = True  # En producción se apaga para ocultar la API
+    SECRET_KEY: str = "default_secret_key_change_in_production_environment"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    RATE_LIMIT_LOGIN_ATTEMPTS: int = 5
+    RATE_LIMIT_WINDOW_SECONDS: int = 300
 
     # PostgreSQL / TimescaleDB
     POSTGRES_USER: str = "market_admin"

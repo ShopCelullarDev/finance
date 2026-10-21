@@ -1,21 +1,51 @@
 import asyncio
 import json
-from typing import Set
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from typing import Optional, Set
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
+import jwt
 import redis.asyncio as aioredis
 
 from app.core.config import settings
 from app.core.redis import redis_pool
+from app.core.security import decode_token
+from app.services.auth_service import AuthService
 
 router = APIRouter()
 
 
 @router.websocket("/live")
-async def websocket_live_gateway(websocket: WebSocket):
+async def websocket_live_gateway(
+    websocket: WebSocket,
+    token: Optional[str] = Query(None),
+    ticket: Optional[str] = Query(None),
+):
     """
     Gateway de WebSockets en tiempo real para la Terminal del Trader y Dashboard.
-    Permite a los clientes suscribirse a streams de ticks, señales predictivas y noticias.
+    Requiere autenticación obligatoria mediante JWT Access Token (?token=...) o ticket efímero (?ticket=...).
     """
+    authenticated_user_id: Optional[str] = None
+
+    # 1. Validar ticket efímero de un solo uso
+    if ticket:
+        authenticated_user_id = await AuthService.validate_and_consume_ws_ticket(ticket)
+
+    # 2. Si no hay ticket, validar Access Token JWT
+    if not authenticated_user_id and token:
+        try:
+            payload = decode_token(token)
+            if payload.get("type") == "access":
+                authenticated_user_id = payload.get("sub")
+        except jwt.PyJWTError:
+            authenticated_user_id = None
+
+    # 3. Rechazar conexión no autorizada con código 4001
+    if not authenticated_user_id:
+        await websocket.close(
+            code=status.WS_1008_POLICY_VIOLATION,
+            reason="Acceso denegado: Se requiere autenticación válida (token o ticket).",
+        )
+        return
+
     await websocket.accept()
     subscribed_channels: Set[str] = set()
 

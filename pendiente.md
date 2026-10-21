@@ -104,16 +104,26 @@ Este documento registra todas las tareas de implementación divididas por fases.
 
 ---
 
-## Fase 5: Optimización SEO, SSR y Core Web Vitals (Lighthouse 90+)
+## Fase 5: Arquitectura Privada, Autenticación y Control de Acceso (Zero-Leak Security)
 
-- [ ] **5.1 Arquitectura SSR/SSG en Next.js** `Prioridad: Alta` `Agente: seo-performance-agent`
-  - [ ] Páginas públicas de activos `/market/[symbol]` renderizadas en el servidor para indexación inmediata.
-  - [ ] Generación estática incremental (ISR) para actualizar precios y métricas clave periódicamente.
-- [ ] **5.2 Marcado Semántico y Schema.org JSON-LD** `Prioridad: Alta` `Agente: seo-performance-agent`
-  - [ ] Inyección de esquemas JSON-LD (`FinancialProduct`, `Dataset`, `NewsArticle`).
-  - [ ] Metadatos dinámicos Open Graph y Twitter Cards generados con imagen de cotización.
-- [ ] **5.3 Auditoría de Rendimiento y Core Web Vitals** `Prioridad: Alta` `Agente: seo-performance-agent`
-  - [ ] Optimización de Largest Contentful Paint (LCP < 1.5s) con lazy loading y prefetch selectivo.
-  - [ ] Eliminación de Cumulative Layout Shift (CLS = 0) reservando dimensiones en gráficos.
-  - [ ] Optimización de interacción (INP < 100ms) evitando bloqueos en el hilo principal con Web Workers si aplica.
-  - [ ] Verificación de reporte Lighthouse >= 90 en todos los rubros.
+- [x] **5.1 Bloqueo Global de Indexación y Privacidad Estricta (Anti-SEO)** `Prioridad: Alta` `Agente: devops-security-agent`
+  - [x] Inyección de `robots.txt` restrictivo (`User-agent: *`, `Disallow: /`) en Next.js.
+  - [x] Configuración global de cabecera HTTP `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet` en `next.config.ts`.
+  - [x] Metadatos globales `<meta name="robots" content="noindex, nofollow" />` en `layout.tsx`.
+  - [x] Middleware en FastAPI para inyectar cabeceras de privacidad y deshabilitar endpoints de docs públicos en producción (`/docs`, `/redoc` condicionales).
+- [x] **5.2 Modelo de Usuarios y Hashing de Contraseñas (Argon2id / bcrypt)** `Prioridad: Alta` `Agente: dba-timescaledb-agent & backend-fastapi-agent`
+  - [x] Migración SQL / tabla `users` (id UUID, username, email, hashed_password, role, is_active, failed_attempts, locked_until).
+  - [x] Utilidades criptográficas seguras de hashing con sal y factor de trabajo alto (`Argon2id` o `bcrypt`).
+  - [x] Script de seed CLI para crear el superusuario inicial administrador de forma segura.
+- [x] **5.3 Gestión de Sesiones y Tokens Duales (JWT + Redis + WebSocket Auth)** `Prioridad: Alta` `Agente: backend-fastapi-agent`
+  - [x] Emisión de Access Token de corta duración (15 min) y Refresh Token de larga duración (7 días).
+  - [x] Almacenamiento y revocación inmediata de Refresh Tokens en Redis (soporte para cierre de sesión global).
+  - [x] Protocolo de autenticación para WebSockets (`/ws/live` con validación de ticket efímero o token en handshake).
+- [x] **5.4 Control de Acceso, Middleware y Rate Limiting** `Prioridad: Alta` `Agente: backend-fastapi-agent & frontend-terminal-agent`
+  - [x] Dependencias de seguridad en FastAPI (`get_current_active_user`, scopes de roles).
+  - [x] Rate limiter con ventana deslizante en Redis para `/api/v1/auth/login` (máximo 5 intentos por IP/usuario, bloqueo temporal).
+  - [x] Middleware en Next.js (`middleware.ts`) que intercepta todas las rutas privadas y redirige a `/login` si no hay token válido.
+- [x] **5.5 Gate UI/UX del Terminal (Pantalla de Login Fintech Dark)** `Prioridad: Alta` `Agente: frontend-terminal-agent`
+  - [x] Pantalla de Login institucional con estética ergonómica oscura (#0b0e14, acentos esmeralda/rojo, sin fugas de marca).
+  - [x] Contexto global de autenticación en React (`AuthProvider`) con refresh automático de tokens en segundo plano.
+  - [x] Interceptores en `api.ts` y reconexión autenticada en `websocket.ts`.

@@ -13,8 +13,11 @@ import { TelemetryDashboard } from '@/components/admin/TelemetryDashboard';
 import { wsClient } from '@/services/websocket';
 import { fetchSignals, fetchNews, fetchTelemetry, triggerSignalEvaluation, normalizeSignal, normalizeNews } from '@/services/api';
 import { MarketTick, PredictiveSignal, NewsEvent, SystemTelemetry } from '@/types/market';
+import { useAuth } from '@/context/AuthContext';
+import { Activity } from 'lucide-react';
 
 export default function Home() {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'trading' | 'admin'>('trading');
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTC/USDT');
   const [timeframe, setTimeframe] = useState<string>('5m');
@@ -156,6 +159,8 @@ export default function Home() {
 
   // Inicializar WebSocket y suscripciones en tiempo real
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     loadInitialData();
 
     const unsubStatus = wsClient.addStatusListener((status) => {
@@ -271,6 +276,17 @@ export default function Home() {
 
   // Obtener la señal activa más reciente para el símbolo seleccionado
   const activeSignalForChart = signals.find((s) => s.symbol === selectedSymbol) || null;
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#07090e] flex flex-col items-center justify-center text-slate-400 gap-3 select-none">
+        <Activity className="w-8 h-8 text-emerald-400 animate-spin" />
+        <span className="font-mono text-xs tracking-widest uppercase text-emerald-400">
+          Autenticando Bóveda Cuantitativa...
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0b0e14] text-[#f8fafc]">

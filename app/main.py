@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 from sqlalchemy import text
 
 from app.api.v1.endpoints.health import router as health_router
@@ -63,11 +64,21 @@ app = FastAPI(
         "análisis de sentimiento NLP en noticias y generación de señales predictivas con IA."
     ),
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/api/v1/openapi.json",
+    docs_url="/docs" if settings.DOCS_ENABLED else None,
+    redoc_url="/redoc" if settings.DOCS_ENABLED else None,
+    openapi_url="/api/v1/openapi.json" if settings.DOCS_ENABLED else None,
     lifespan=lifespan,
 )
+
+# Middleware de Seguridad y Privacidad Estricta (Zero Crawler / Anti-Indexación)
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet, noimageindex, nocache"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 # Configuración de CORS para Terminal Frontend y Dashboard
 app.add_middleware(
@@ -77,6 +88,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/robots.txt", response_class=PlainTextResponse, tags=["Privacidad"])
+async def robots_txt():
+    """Bloqueo global absoluto para cualquier rastreador o crawler web."""
+    return "User-agent: *\nDisallow: /\n"
 
 # Endpoint raíz de salud
 app.include_router(health_router, prefix="", tags=["Salud Directa"])

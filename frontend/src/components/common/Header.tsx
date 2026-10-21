@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Activity, ShieldCheck, Zap, Radio, Terminal, Database, RefreshCw } from 'lucide-react';
+import { Activity, ShieldCheck, Zap, Radio, Terminal, Database, RefreshCw, LogOut, UserCheck } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface HeaderProps {
   activeTab: 'trading' | 'admin';
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   onEvaluateAI,
   isEvaluating,
 }) => {
+  const { user, logout } = useAuth();
   const getStatusBadge = () => {
     switch (connectionStatus) {
       case 'CONNECTED':
@@ -59,8 +61,9 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-sm font-bold tracking-wider text-slate-50 uppercase">
                 Motor Predictivo
               </span>
-              <span className="text-[10px] uppercase font-semibold tracking-widest px-1.5 py-0.5 rounded bg-blue-900/50 text-blue-300 border border-blue-700/50">
-                PRO v1.0
+              <span className="text-[10px] uppercase font-semibold tracking-widest px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-700/50 flex items-center gap-1">
+                <ShieldCheck className="w-2.5 h-2.5" />
+                VAULT
               </span>
             </div>
             <p className="text-[10px] text-slate-400 font-medium">
@@ -73,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
         <nav className="flex items-center gap-1 bg-[#131923] p-1 rounded-lg border border-[#242f42]">
           <button
             onClick={() => setActiveTab('trading')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'trading'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-[#1c2433]'
@@ -84,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             onClick={() => setActiveTab('admin')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'admin'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-[#1c2433]'
@@ -101,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onEvaluateAI}
             disabled={isEvaluating}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-sm shadow-blue-500/20 border border-blue-400/30 transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-sm shadow-blue-500/20 border border-blue-400/30 transition-all disabled:opacity-50 cursor-pointer"
             title="Disparar evaluación cuantitativa de señal con IA"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isEvaluating ? 'animate-spin' : ''}`} />
@@ -110,6 +113,26 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Connection Badge */}
           {getStatusBadge()}
+
+          {/* User Badge & Logout */}
+          {user && (
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#131923] border border-slate-800 text-xs text-slate-300">
+                <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="font-mono text-slate-200">{user.username}</span>
+                <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-slate-800 text-slate-400 font-semibold font-mono">
+                  {user.role}
+                </span>
+              </div>
+              <button
+                onClick={logout}
+                className="p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-red-950/40 border border-transparent hover:border-red-900/50 transition-colors cursor-pointer"
+                title="Cerrar Sesión Segura"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

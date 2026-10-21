@@ -1,58 +1,53 @@
 # SEMILLA VIVA DE ESTADO (CHECKPOINT SEED)
 
-- **FECHA_HORA:** 2026-10-20T17:14:00-04:00
+- **FECHA_HORA:** 2026-10-21T11:06:00-04:00
 - **AGENTE_MODELO:** Gemini 3.8 Flash (High) / Antigravity AI Orchestrator
-- **ROL_ACTIVO:** devops-security-agent & frontend-terminal-agent
-- **FASE_ACTUAL:** Fases 1 a 4 Concluidas y Desplegadas en GitHub (`main`) -> Listo para Fase 5
-- **ID_TAREA_ACTUAL:** Cierre de Sesión Diario - Fase 4 Completada al 100%
-- **ESTADO_TAREA:** SESION_CERRADA_LISTO_PARA_FASE_5
+- **ROL_ACTIVO:** devops-security-agent & backend-fastapi-agent
+- **FASE_ACTUAL:** Fase 5 Concluida al 100% (Arquitectura Privada y Control de Acceso)
+- **ID_TAREA_ACTUAL:** 5.5 (Gate UI/UX del Terminal y Verificación Completa)
+- **ESTADO_TAREA:** COMPLETADO_VERIFICADO
+- **ARCHIVO_CANONICO_ESTADO:** [PROJECT_STATE.md](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/PROJECT_STATE.md) & [checkpoint.json](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/checkpoint.json)
 
 ---
 
 ## 1. ULTIMA ACCION COMPLETADA
-- **Resolución integral de bloqueo 'CONECTANDO' y Gráfico TradingView:**
-  - Identificado error en `NewsFeedWidget`: el backend devolvía `sentiment_score` como string decimal (ej. `"-0.650"`) y sin `sentiment_label`, lo que provocaba `score.toFixed is not a function`, estrellando el renderizado de React en la carga inicial y congelando el estado en 'CONECTANDO'.
-  - Implementada función `normalizeNews` en `src/services/api.ts` y sanitización ultra defensiva en `NewsFeedWidget.tsx`.
-  - Agregado listener de estado síncrono inmediato en `MarketWebSocketClient` (`addStatusListener`), garantizando reporte inmediato al montar el componente.
-  - Añadido endpoint `/api/v1/telemetry/overview` en FastAPI para eliminar los 404 y servir métricas en vivo combinadas.
-  - Configurado `allowedDevOrigins` en `next.config.ts` para habilitar HMR con `127.0.0.1`.
-  - Build de Next.js (`npm run build`) validado con 0 errores TypeScript.
-
+- **Pivote Arquitectónico a Entorno Privado y Seguridad Mandatoria (Fase 5 Concluida):**
+  - **Zero Search Indexing:** Directiva `Disallow: /` en `frontend/src/app/robots.ts`, cabeceras HTTP `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet, noimageindex, nocache` y meta tags en `layout.tsx`. Middleware de cabeceras de privacidad en FastAPI.
+  - **Modelo y Hashing Criptográfico:** Implementado SHA-256 + Bcrypt (12 rondas) en `app/core/security.py`, tabla `users` en SQLAlchemy y DDL `04_create_users.sql`. Script CLI `scripts/create_superuser.py`.
+  - **Tokens Duales & Redis:** JWT Access Token (15m) + Refresh Token (7d) con whitelist y revocación en Redis (`AuthService`), más tickets efímeros de 60s para conexión por WebSockets.
+  - **Protección de Rutas & Gate UI:** Middleware en Next.js (`middleware.ts`) que intercepta accesos anónimos y redirige a `/login`. Pantalla de login institucional Dark Fintech (`frontend/src/app/login/page.tsx`), contexto `AuthProvider` con silent refresh y controles de operador en `Header.tsx`.
+  - **Validación:** Compilación de Next.js (`npm run build`) limpia con 0 errores y suite de pruebas `scripts/test_auth_flow.py` ejecutada exitosamente.
 
 ---
 
 ## 2. ARCHIVOS MODIFICADOS RECIENTEMENTE
-- `frontend/src/types/market.ts`
-- `frontend/src/services/api.ts`
-- `frontend/src/services/websocket.ts`
-- `frontend/src/components/common/Header.tsx`
-- `frontend/src/components/common/TickerTape.tsx`
-- `frontend/src/components/common/SignalDetailModal.tsx`
-- `frontend/src/components/trading/TradingViewChart.tsx`
-- `frontend/src/components/trading/SignalsFeed.tsx`
-- `frontend/src/components/trading/OrderbookWidget.tsx`
-- `frontend/src/components/trading/MacroSentimentWidget.tsx`
-- `frontend/src/components/trading/NewsFeedWidget.tsx`
-- `frontend/src/components/admin/TelemetryDashboard.tsx`
-- `frontend/src/app/page.tsx`
-- `frontend/src/app/globals.css`
-- `frontend/src/app/layout.tsx`
-- `pendiente.md`, `bitacora.md`, `semilla.md`
+- `PROJECT_STATE.md`, `checkpoint.json`, `pendiente.md`, `semilla.md`
+- `app/core/config.py`, `app/core/security.py`
+- `app/models/user.py`, `app/models/__init__.py`
+- `app/schemas/user.py`, `app/schemas/__init__.py`
+- `app/services/auth_service.py`
+- `app/api/deps.py`
+- `app/api/v1/endpoints/auth.py`, `app/api/v1/router.py`
+- `app/api/v1/endpoints/websockets.py`
+- `app/main.py`
+- `database/init/04_create_users.sql`
+- `scripts/create_superuser.py`, `scripts/test_auth_flow.py`
+- `frontend/src/app/robots.ts`, `frontend/next.config.ts`, `frontend/src/app/layout.tsx`
+- `frontend/src/app/login/page.tsx`, `frontend/src/middleware.ts`
+- `frontend/src/services/auth.ts`, `frontend/src/context/AuthContext.tsx`
+- `frontend/src/components/common/Header.tsx`, `frontend/src/services/websocket.ts`
 
 ---
 
 ## 3. COMANDO DE VERIFICACION RAPIDA
 ```bash
-# Verificar compilación limpia del frontend
-cd frontend && npm run build
-# Comprobar respuesta HTTP del frontend y de la API
-curl -s -I http://127.0.0.1:3000 && curl -s http://127.0.0.1:8000/api/v1/health
+cd frontend && npm run build && cd .. && PYTHONPATH=. .venv/bin/python3 scripts/test_auth_flow.py
 ```
 
 ---
 
 ## 4. INSTRUCCION DE REANUDACION PARA EL PROXIMO AGENTE
-> **Ejecutar Fase 5 de [pendiente.md](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/pendiente.md) (Optimización SEO, SSR y Core Web Vitals):**
-> 1. Configurar rutas dinámicas SSR para activos `/market/[symbol]` en Next.js App Router para indexación en motores de búsqueda.
-> 2. Inyectar esquemas Schema.org JSON-LD (`FinancialProduct`, `Dataset`) y metadatos Open Graph.
-> 3. Auditar Core Web Vitals (LCP < 1.5s, CLS = 0, INP < 100ms) para garantizar reporte Lighthouse 90+.
+> **INSTRUCCION_DIRECTA:** La Fase 5 está 100% implementada y validada. Para levantar el entorno en vivo:
+> 1. Levantar contenedores Docker: `docker compose up -d`
+> 2. Crear superusuario inicial: `PYTHONPATH=. .venv/bin/python3 scripts/create_superuser.py --username admin --email admin@terminal.private --password TuPasswordSeguro123!`
+> 3. Iniciar backend FastAPI y frontend Next.js para pruebas interactivas en `http://localhost:3000/login`.
