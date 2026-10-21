@@ -258,6 +258,32 @@ Este documento registra cronológicamente los avances, eventos técnicos, acuerd
      - Se configuró el cliente [frontend/src/services/websocket.ts](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/frontend/src/services/websocket.ts) para autenticación por token.
 - **Estado:** COMPLETADO_VERIFICADO (Build Next.js con 0 errores y pruebas unitarias de backend aprobadas).
 
+---
+
+### [2026-10-21 12:45] - [Gemini 3.8 Flash High] - [quantitative-ai-nlp-agent & devops-security-agent]
+- **Fase / Tarea:** Optimización Cuantitativa del Motor Predictivo - Fase A (Decaimiento Temporal NLP, Volatilidad Realizada y SL/TP Dinámicos)
+- **Acción:**
+  1. **Auditoría del Modelo Cuantitativo:** Se identificaron cuatro cuellos de botella estadísticos en `signal_engine.py`: decaimiento plano de noticias (promedio simple), stops/targets fijos porcentuales desvinculados de la volatilidad, ausencia de calibración probabilística en los scores de confianza y omisión de microestructura de spreads.
+  2. **Decaimiento Temporal Exponencial de Noticias:**
+     - Se implementó función kernel $w_i = \exp(-\lambda \Delta t)$ con vidas medias calibradas por clase de activo: $\tau_{1/2} = 45$ min para criptoactivos y $\tau_{1/2} = 120$ min para noticias macroeconómicas.
+     - Se añadió extracción de titular más reciente y agregación ponderada por tiempo.
+  3. **Cálculo de Volatilidad Realizada & ATR Empírico:**
+     - Se incorporó estimación de volatilidad a partir de los rendimientos logarítmicos continuos sobre ventana de ticks recientes ($\sigma = \sqrt{\frac{1}{N-1}\sum (r_t - \bar{r})^2}$) combinada con el rango porcentual $(\max(P) - \min(P)) / \bar{P}$.
+  4. **Gestión Dinámica de Riesgo (SL / TP Adaptativos):**
+     - Se reemplazó el stop-loss fijo de 2.0% por un modelo dinámico escalado por volatilidad y acotado por clase de activo: Cripto ($0.8\% - 4.2\%$), Commodities ($0.5\% - 2.5\%$), Índices/Forex ($0.3\% - 1.5\%$).
+     - Se fijó el ratio Riesgo/Recompensa objetivo en 1:2.2.
+  5. **Microestructura & Calibración Logística:**
+     - Se implementó penalización al score de confianza cuando el bid-ask spread supera el 0.08% del precio de mercado.
+     - Se calibró la confianza mediante sigmoide logística acotada entre $50.0\%$ y $98.5\%$.
+  6. **Validación Exhaustiva:**
+     - Se ejecutó `scripts/test_ai_signals.py` validando con éxito la ingesta NLP, la generación de señales con factores explicables en `predictive_signals` y la compatibilidad con los contratos REST/WebSocket del frontend.
+- **Archivos Afectados:**
+  - `app/services/ai/signal_engine.py`
+  - `scripts/test_ai_signals.py`
+  - `bitacora.md`
+- **Estado:** COMPLETADO_VERIFICADO (Motor de señales actualizado y validado en caliente).
+
+
 
 
 
