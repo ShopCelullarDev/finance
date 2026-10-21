@@ -127,3 +127,47 @@ Este documento registra todas las tareas de implementación divididas por fases.
   - [x] Pantalla de Login institucional con estética ergonómica oscura (#0b0e14, acentos esmeralda/rojo, sin fugas de marca).
   - [x] Contexto global de autenticación en React (`AuthProvider`) con refresh automático de tokens en segundo plano.
   - [x] Interceptores en `api.ts` y reconexión autenticada en `websocket.ts`.
+
+---
+
+## Fase 6: Optimización Cuantitativa y Machine Learning del Motor Predictivo
+
+- [x] **6.1 (Fase 6A) Modelado de Volatilidad, Decaimiento NLP y Stops Dinámicos** `Prioridad: Alta` `Agente: quant-nlp-agent`
+  - [x] Decaimiento temporal exponencial de noticias ($\tau_{1/2}=45\text{m}/120\text{m}$).
+  - [x] Volatilidad realizada $\sigma_{5m}$ con normalización min-max adaptativa.
+  - [x] Stops dinámicos basados en Average True Range (ATR) con relación R/R calibrada 1:2.2.
+- [x] **6.2 (Fase 6B) Microestructura, Confluencia MTF y Detección de Régimen** `Prioridad: Alta` `Agente: quant-nlp-agent`
+  - [x] Order Flow Imbalance (OFI) y Cumulative Volume Delta (CVD) vía regla Lee-Ready.
+  - [x] Confluencia Multi-Timeframe (1m, 5m, 1h) con penalización anti-whipsaw y multiplicador dinámico.
+  - [x] Clasificador cuantitativo de régimen de mercado (Trending Bull/Bear, Range/Mean-Reverting, Volatile Squeeze).
+- [x] **6.3 (Fase 6C) Machine Learning Supervisado & Feature Store** `Prioridad: Alta` `Agente: quant-nlp-agent`
+  - [x] Feature Store Cuantitativo con 14 variables independientes (`feature_store.py`).
+  - [x] Triple Barrier Labeling de Marcos López de Prado con calibración empírica por error estándar ($\sigma \cdot \sqrt{H}$).
+  - [x] Clasificador LightGBM con árboles regularizados y entrenamiento cronológico Walk-Forward.
+  - [x] Inferencia en tiempo real en `signal_engine.py` e integración con UI explicable.
+- [x] **6.4 (Fase 6D) Backtesting Vectorizado & Walk-Forward Performance Matrix** `Prioridad: Alta` `Agente: quant-nlp-agent & frontend-terminal-agent`
+  - [x] Motor de backtesting tick a tick con fricción realista (taker fees de 1.5 bps y bid-ask slippage).
+  - [x] Trailing stop automático a breakeven (+ comisiones) al alcanzar el 50% de la distancia objetivo.
+  - [x] Matriz Walk-Forward por Folds cronológicos (+1.07% Fold 1, +1.23% Fold 2, +0.26% Fold 3; Max DD 6.37%).
+  - [x] Endpoints FastAPI `/api/v1/backtest/latest` y `/api/v1/backtest/run`.
+  - [x] Dashboard UI institucional `BacktestDashboard.tsx` integrado en Header con libro de auditoría de órdenes.
+
+---
+
+## Fase 7: Paper Trading en Vivo & Simulated Order Execution Manager
+
+- [ ] **7.1 Gestor de Posiciones y Cartera Simulada (Simulated Portfolio Manager)** `Prioridad: Alta` `Agente: backend-fastapi-agent`
+  - [ ] Esquema de base de datos o estado persistente en Redis/TimescaleDB para cuentas de paper trading (balance USDT, margen asignado, PnL realizado).
+  - [ ] Motor de dimensionamiento de posición (Position Sizing) basado en volatilidad ATR y riesgo fijo (ej. 1% por trade).
+- [ ] **7.2 Suscriptor de Señales en Vivo y Auto-Ejecución (Order Dispatcher)** `Prioridad: Alta` `Agente: backend-fastapi-agent`
+  - [ ] Worker en segundo plano suscrito a Redis PubSub `signals:stream`.
+  - [ ] Filtro de confluencia para auto-ejecución (confianza ML >= 55%, OFI en concordancia, filtro de régimen).
+  - [ ] Apertura de órdenes simuladas (Market / Limit con slippage estimado).
+- [ ] **7.3 Monitor de Liquidación y Trailing Stops en Vivo** `Prioridad: Alta` `Agente: backend-fastapi-agent`
+  - [ ] Monitoreo tick a tick de posiciones abiertas frente al feed de precios de Binance WS.
+  - [ ] Disparo automático de Take Profit, Stop Loss y desplazamiento dinámico de Trailing Stop a Breakeven en tiempo real.
+  - [ ] Registro histórico de transacciones ejecutadas en hipertabla o tabla de auditoría.
+- [ ] **7.4 Panel UI de Paper Trading en la Terminal** `Prioridad: Media` `Agente: frontend-terminal-agent`
+  - [ ] Pestaña o widget interactivo con posiciones abiertas en tiempo real (Unrealized PnL, precio de entrada, distancia al SL/TP).
+  - [ ] Botones de cierre manual de emergencia de posiciones.
+  - [ ] Curva de capital (Equity Curve) en vivo y métricas de rendimiento acumuladas.
