@@ -283,6 +283,38 @@ Este documento registra cronológicamente los avances, eventos técnicos, acuerd
   - `bitacora.md`
 - **Estado:** COMPLETADO_VERIFICADO (Motor de señales actualizado y validado en caliente).
 
+---
+
+### [2026-10-21 14:35] - [Gemini 3.8 Flash High] - [quantitative-ai-nlp-agent & frontend-terminal-agent]
+- **Fase / Tarea:** Optimización Cuantitativa del Motor Predictivo - Fase B (Order Flow Imbalance, Confluencia Multi-Timeframe y Régimen de Mercado)
+- **Acción:**
+  1. **Order Flow Imbalance (OFI) & CVD:**
+     - Se implementó `_calculate_order_flow_imbalance` basado en la regla de Lee-Ready sobre microestructura de ticks para calcular Cumulative Volume Delta (CVD) e Imbalance neto ($OFI \in [-1.0, +1.0]$).
+     - Se clasifica el flujo institucional en `STRONG_BUY_PRESSURE`, `MODERATE_BUY_PRESSURE`, `BALANCED_FLOW`, etc.
+  2. **Confluencia Multi-Timeframe (MTF Engine):**
+     - Se implementó `_calculate_multi_timeframe_confluence` con muestreo jerárquico de 100 ticks: Fast (1m / 8 ticks), Medium (5m / 25 ticks) y Macro (1h / 100 ticks).
+     - Se integró el filtro Anti-Whipsaw: si un rebote local en 1m/5m entra en conflicto frontal contra una tendencia macro bajista de 1h, la señal se degrada automáticamente a `HOLD` o `BUY` protegido con stop ajustado (prevención de bull traps).
+     - Si hay alineación total (`FULL_CONFLUENCE`), se eleva la acción a `STRONG_BUY`/`STRONG_SELL` y se aplica un bono de confianza de $+6.0\%$.
+  3. **Clasificador Cuantitativo de Régimen de Mercado:**
+     - Se implementó `_detect_market_regime` discriminando entre `TRENDING_EXPANSION`, `CHOPPY_RANGE`, `VOLATILITY_SQUEEZE` y `BALANCED_MARKET`.
+     - En rangos laterales o squeeze, el modelo reduce automáticamente el peso de momentum y amplía el peso de reversión a la media y OFI.
+  4. **Adaptación UI/UX en Frontend:**
+     - Se actualizaron las interfaces en `frontend/src/types/market.ts` incorporando los nuevos tipos de `TriggerFactors`.
+     - Se enriqueció `SignalDetailModal.tsx` con visualizadores de OFI, cuadrícula de confluencia MTF por marco temporal y justificación algorítmica textual (`rationale`).
+     - Se añadió indicador de régimen de mercado en las tarjetas de `SignalsFeed.tsx`.
+  5. **Verificación:**
+     - `PYTHONPATH=. .venv/bin/python3 scripts/test_ai_signals.py` ejecutado al 100% con validación de OFI, MTF y Régimen.
+     - Compilación estática de Next.js `npm run build` ejecutada con éxito (6/6 rutas estáticas, 0 errores).
+- **Archivos Afectados:**
+  - `app/services/ai/signal_engine.py`
+  - `scripts/test_ai_signals.py`
+  - `frontend/src/types/market.ts`
+  - `frontend/src/components/common/SignalDetailModal.tsx`
+  - `frontend/src/components/trading/SignalsFeed.tsx`
+  - `bitacora.md`
+- **Estado:** COMPLETADO_VERIFICADO (Fase B integrada y validada en backend y frontend).
+
+
 
 
 

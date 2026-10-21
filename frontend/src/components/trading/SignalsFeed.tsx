@@ -169,9 +169,16 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
 
                 {/* Footer link to explainability */}
                 <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-[#242f42]/40 text-[10px] text-slate-400">
-                  <span className="font-mono">
-                    R/R 1:{signal.trigger_factors?.risk_reward_ratio?.toFixed(1) ?? '2.2'}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono">
+                      R/R 1:{signal.trigger_factors?.risk_reward_ratio?.toFixed(1) ?? '2.2'}
+                    </span>
+                    {signal.trigger_factors?.market_regime && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] bg-[#0b0e14] text-blue-300 font-mono border border-[#242f42]">
+                        {signal.trigger_factors.market_regime}
+                      </span>
+                    )}
+                  </div>
                   <span className="flex items-center gap-0.5 text-blue-400 hover:text-blue-300 font-medium">
                     Ver Explicabilidad <ChevronRight className="h-3 w-3" />
                   </span>

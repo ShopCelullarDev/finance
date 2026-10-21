@@ -40,20 +40,47 @@ export interface TriggerFactors {
     label: SentimentLabel;
     weight: number;
     contribution: number;
+    half_life_minutes?: number;
+    headlines_count?: number;
+    sample_headline?: string;
   };
   price_momentum: {
+    score?: number;
     change_pct: number;
     weight: number;
     contribution: number;
+    vwap_deviation_pct?: number;
+    realized_volatility_pct?: number;
+    last_spread?: number | null;
+  };
+  order_flow?: {
+    ofi_score: number;
+    cvd_ratio: number;
+    flow_regime: string;
+    weight: number;
+    contribution: number;
+  };
+  multi_timeframe?: {
+    confluence_score: number;
+    status: string;
+    fast_trend: string;
+    medium_trend: string;
+    macro_trend: string;
+    fast_delta_pct: number;
+    macro_delta_pct: number;
+    multiplier?: number;
   };
   macro_bias: {
     bias: number;
     weight: number;
     contribution: number;
+    market_regime?: string;
   };
+  market_regime?: string;
   total_composite_score: number;
   risk_reward_ratio: number;
   volatility_risk: string;
+  rationale?: string;
 }
 
 export interface PredictiveSignal {

@@ -18,11 +18,13 @@ from app.models.predictive_signal import PredictiveSignal
 class SignalEngine:
     """
     Motor Cuantitativo y de Inteligencia Artificial para la Generación de Señales Predictivas.
-    Incorpora:
+    Fase B:
     1. Decaimiento temporal exponencial de noticias (Half-Life Kernel).
     2. Estimación de volatilidad realizada y Stop-Loss/Take-Profit dinámicos basados en ATR.
-    3. Análisis de microestructura: Desviación de VWAP y penalización por Bid-Ask Spread.
-    4. Calibración probabilística logística del nivel de confianza.
+    3. Microestructura: Order Flow Imbalance (OFI), Cumulative Volume Delta (CVD) y VWAP.
+    4. Confluencia Multi-Timeframe (MTF: 1m, 5m, 1h) con filtro anti-whipsaw.
+    5. Detección cuantitativa de Régimen de Mercado (Trending vs Choppy vs Volatility Squeeze).
+    6. Calibración probabilística logística del nivel de confianza.
     """
 
     def __init__(self):
@@ -76,14 +78,17 @@ class SignalEngine:
         return round(decay_sentiment, 4), label, len(relevant_news), sample_headline
 
     @staticmethod
-    def _calculate_realized_volatility(ticks: List[MarketTick]) -> tuple[float, float, float]:
-        """Calcula volatilidad realizada empírica (%), desviación respecto a VWAP (%) y spread medio."""
+    def _calculate_realized_volatility(ticks: List[MarketTick]) -> tuple[float, float, float, float]:
+        """
+        Calcula volatilidad realizada empírica (%), desviación respecto a VWAP (%),
+        spread medio y rango High-Low porcentual.
+        """
         if len(ticks) < 3:
-            return 1.5, 0.0, 0.0
+            return 1.5, 0.0, 0.0, 1.0
 
         prices = [float(t.price) for t in ticks if t.price is not None]
         if len(prices) < 3:
-            return 1.5, 0.0, 0.0
+            return 1.5, 0.0, 0.0, 1.0
 
         # 1. Log returns para volatilidad realizada
         log_returns = [math.log(prices[i] / prices[i + 1]) for i in range(len(prices) - 1) if prices[i + 1] > 0]
@@ -91,7 +96,6 @@ class SignalEngine:
             mean_ret = sum(log_returns) / len(log_returns)
             variance = sum((r - mean_ret) ** 2 for r in log_returns) / max(1, len(log_returns) - 1)
             tick_std = math.sqrt(variance)
-            # Escala aproximada a barra de 5 minutos (~40 ticks)
             vol_pct = tick_std * math.sqrt(40) * 100.0
         else:
             vol_pct = 1.0
@@ -104,7 +108,7 @@ class SignalEngine:
 
         composite_vol_pct = max(vol_pct, hl_range_pct * 0.6)
 
-        # 2. VWAP simplificado
+        # 2. VWAP sobre la muestra
         volumes = [float(t.volume_24h or 1.0) for t in ticks]
         sum_vol = sum(volumes)
         vwap = sum(p * v for p, v in zip(prices, volumes)) / sum_vol if sum_vol > 0 else mean_p
@@ -114,17 +118,173 @@ class SignalEngine:
         spreads = [float(t.bid_ask_spread) for t in ticks if t.bid_ask_spread is not None]
         avg_spread = sum(spreads) / len(spreads) if spreads else 0.0
 
-        return round(composite_vol_pct, 4), round(vwap_deviation_pct, 4), round(avg_spread, 6)
+        return round(composite_vol_pct, 4), round(vwap_deviation_pct, 4), round(avg_spread, 6), round(hl_range_pct, 4)
+
+    @staticmethod
+    def _calculate_order_flow_imbalance(
+        ticks: List[MarketTick],
+        vwap_dev_pct: float,
+    ) -> tuple[float, float, str]:
+        """
+        Calcula el Order Flow Imbalance (OFI) y Cumulative Volume Delta (CVD)
+        mediante la regla del tick (Lee-Ready algorithm) sobre la microestructura.
+        Retorna: (ofi_score [-1.0, 1.0], cvd_ratio [-1.0, 1.0], flow_regime)
+        """
+        if len(ticks) < 4:
+            return 0.0, 0.0, "BALANCED_FLOW"
+
+        prices = [float(t.price) for t in ticks if t.price is not None]
+        volumes = [float(t.volume_24h or 1.0) for t in ticks]
+
+        # Invertir para recorrer en orden cronológico ascendente
+        p_asc = list(reversed(prices))
+        v_asc = list(reversed(volumes))
+
+        buy_volume = 0.0
+        sell_volume = 0.0
+        last_sign = 1.0
+
+        for i in range(1, len(p_asc)):
+            delta_p = p_asc[i] - p_asc[i - 1]
+            delta_v = abs(v_asc[i] - v_asc[i - 1])
+            if delta_v == 0:
+                delta_v = 1.0
+
+            if delta_p > 0:
+                trade_sign = 1.0
+            elif delta_p < 0:
+                trade_sign = -1.0
+            else:
+                trade_sign = last_sign
+
+            last_sign = trade_sign
+
+            if trade_sign > 0:
+                buy_volume += delta_v
+            else:
+                sell_volume += delta_v
+
+        total_vol = buy_volume + sell_volume
+        cvd_ratio = (buy_volume - sell_volume) / total_vol if total_vol > 0 else 0.0
+
+        # OFI Score: combina CVD normalizado con sesgo de posición frente a VWAP
+        ofi_score = math.tanh(cvd_ratio * 2.2 + (vwap_dev_pct / 0.5) * 0.4)
+
+        if ofi_score >= 0.35:
+            flow_regime = "STRONG_BUY_PRESSURE"
+        elif ofi_score >= 0.12:
+            flow_regime = "MODERATE_BUY_PRESSURE"
+        elif ofi_score <= -0.35:
+            flow_regime = "STRONG_SELL_PRESSURE"
+        elif ofi_score <= -0.12:
+            flow_regime = "MODERATE_SELL_PRESSURE"
+        else:
+            flow_regime = "BALANCED_FLOW"
+
+        return round(ofi_score, 4), round(cvd_ratio, 4), flow_regime
+
+    @staticmethod
+    def _calculate_multi_timeframe_confluence(ticks: List[MarketTick]) -> Dict[str, Any]:
+        """
+        Evalúa la alineación jerárquica de tendencia en múltiples marcos temporales:
+        - Fast (1m / ~8 ticks)
+        - Medium (5m / ~25 ticks)
+        - Macro (15m - 1h / ventana completa de ticks)
+        """
+        n = len(ticks)
+        if n < 10:
+            return {
+                "confluence_score": 0.0,
+                "status": "INSUFFICIENT_DATA",
+                "fast_trend": "NEUTRAL",
+                "medium_trend": "NEUTRAL",
+                "macro_trend": "NEUTRAL",
+                "fast_delta_pct": 0.0,
+                "macro_delta_pct": 0.0,
+                "multiplier": 1.0,
+            }
+
+        prices = [float(t.price) for t in ticks if t.price is not None]
+        p_current = prices[0]
+
+        # 1. Fast Trend (~8 ticks / 1m)
+        p_fast = prices[min(7, n - 1)]
+        fast_pct = ((p_current - p_fast) / p_fast) * 100.0 if p_fast > 0 else 0.0
+        fast_dir = 1 if fast_pct > 0.03 else (-1 if fast_pct < -0.03 else 0)
+
+        # 2. Medium Trend (~25 ticks / 5m)
+        p_med = prices[min(24, n - 1)]
+        med_pct = ((p_current - p_med) / p_med) * 100.0 if p_med > 0 else 0.0
+        med_dir = 1 if med_pct > 0.06 else (-1 if med_pct < -0.06 else 0)
+
+        # 3. Macro Trend (ventana amplia de hasta 100 ticks)
+        p_macro = prices[-1]
+        macro_pct = ((p_current - p_macro) / p_macro) * 100.0 if p_macro > 0 else 0.0
+        macro_dir = 1 if macro_pct > 0.12 else (-1 if macro_pct < -0.12 else 0)
+
+        raw_confluence = (fast_dir * 0.35) + (med_dir * 0.35) + (macro_dir * 0.30)
+
+        if fast_dir == med_dir == macro_dir and fast_dir != 0:
+            status = "FULL_CONFLUENCE"
+            multiplier = 1.20
+        elif fast_dir != 0 and macro_dir != 0 and fast_dir != macro_dir:
+            status = "COUNTER_TREND_WARNING"
+            multiplier = 0.55
+        else:
+            status = "PARTIAL_CONFLUENCE"
+            multiplier = 1.0
+
+        return {
+            "confluence_score": round(raw_confluence, 3),
+            "status": status,
+            "fast_trend": "BULLISH" if fast_dir > 0 else ("BEARISH" if fast_dir < 0 else "NEUTRAL"),
+            "medium_trend": "BULLISH" if med_dir > 0 else ("BEARISH" if med_dir < 0 else "NEUTRAL"),
+            "macro_trend": "BULLISH" if macro_dir > 0 else ("BEARISH" if macro_dir < 0 else "NEUTRAL"),
+            "fast_delta_pct": round(fast_pct, 3),
+            "macro_delta_pct": round(macro_pct, 3),
+            "multiplier": multiplier,
+        }
+
+    @staticmethod
+    def _detect_market_regime(
+        realized_vol_pct: float,
+        momentum_score: float,
+        hl_range_pct: float,
+    ) -> tuple[str, float, float, float, float]:
+        """
+        Clasifica cuantitativamente el régimen de mercado y adapta los pesos del ensamble:
+        - TRENDING_EXPANSION: Alta direccionalidad, expande momentum.
+        - CHOPPY_RANGE: Oscilatorio/lateral, reduce momentum y prioriza reversión a la media.
+        - VOLATILITY_SQUEEZE: Contracción extrema, prioriza order flow anticipado.
+        - BALANCED_MARKET: Condiciones normales equilibradas.
+        Retorna: (regime, w_sentiment, w_momentum, w_ofi, w_macro)
+        """
+        abs_mom = abs(momentum_score)
+
+        if realized_vol_pct < 0.55 and hl_range_pct < 0.35:
+            regime = "VOLATILITY_SQUEEZE"
+            w_sent, w_mom, w_ofi, w_macro = 0.35, 0.15, 0.30, 0.20
+        elif abs_mom < 0.12 and realized_vol_pct < 1.1:
+            regime = "CHOPPY_RANGE"
+            w_sent, w_mom, w_ofi, w_macro = 0.40, 0.15, 0.25, 0.20
+        elif abs_mom >= 0.30 and realized_vol_pct >= 0.90:
+            regime = "TRENDING_EXPANSION"
+            w_sent, w_mom, w_ofi, w_macro = 0.25, 0.40, 0.20, 0.15
+        else:
+            regime = "BALANCED_MARKET"
+            w_sent, w_mom, w_ofi, w_macro = 0.35, 0.30, 0.15, 0.20
+
+        return regime, w_sent, w_mom, w_ofi, w_macro
 
     async def evaluate_asset_signal(
         self,
         asset: Asset,
         timeframe: str = "5m",
-        macro_bias: float = 0.0,  # Sesgo macro (-1.0 a +1.0)
+        macro_bias: float = 0.0,
     ) -> Optional[Dict[str, Any]]:
         """
-        Evalúa un activo específico y genera una señal predictiva cuantitativa optimizada.
-        Aplica decaimiento temporal en noticias y stop-loss dinámico adaptado a la volatilidad.
+        Evalúa un activo específico y genera una señal predictiva cuantitativa de Fase B.
+        Incorpora OFI, Confluencia Multi-Timeframe, Detección de Régimen y Stops Adaptativos.
         """
         now = datetime.now(timezone.utc)
         asset_id = asset.id
@@ -132,12 +292,12 @@ class SignalEngine:
         base_symbol = symbol.split("/")[0]
 
         async with AsyncSessionLocal() as session:
-            # 1. Obtener los últimos 40 ticks para muestreo estadístico de volatilidad y momentum
+            # 1. Obtener los últimos 100 ticks para muestreo multi-temporal profundo
             tick_stmt = (
                 select(MarketTick)
                 .where(MarketTick.asset_id == asset_id)
                 .order_by(desc(MarketTick.time))
-                .limit(40)
+                .limit(100)
             )
             tick_res = await session.execute(tick_stmt)
             recent_ticks = tick_res.scalars().all()
@@ -148,20 +308,26 @@ class SignalEngine:
             latest_tick = recent_ticks[0]
             current_price = latest_tick.price
 
-            # Momentum sobre la ventana reciente
-            oldest_tick = recent_ticks[-1]
-            if oldest_tick.price and oldest_tick.price > 0:
-                price_delta_pct = float((current_price - oldest_tick.price) / oldest_tick.price) * 100.0
+            # Momentum sobre la ventana local (últimos 35 ticks)
+            sample_ticks = recent_ticks[:35]
+            oldest_sample = sample_ticks[-1]
+            if oldest_sample.price and oldest_sample.price > 0:
+                price_delta_pct = float((current_price - oldest_sample.price) / oldest_sample.price) * 100.0
             else:
                 price_delta_pct = 0.0
 
-            # Momentum normalizado [-1.0, +1.0] con atenuación no lineal (tanh)
             momentum_score = math.tanh(price_delta_pct / 1.5)
 
-            # Volatilidad realizada empírica y VWAP
-            realized_vol_pct, vwap_dev_pct, avg_spread = self._calculate_realized_volatility(recent_ticks)
+            # Volatilidad realizada empírica, VWAP y Rango High-Low
+            realized_vol_pct, vwap_dev_pct, avg_spread, hl_range_pct = self._calculate_realized_volatility(recent_ticks)
 
-            # 2. Sentimiento NLP con Kernel de Decaimiento Exponencial (Half-life = 45m cripto / 120m macro)
+            # 2. Microestructura: Order Flow Imbalance (OFI) y CVD
+            ofi_score, cvd_ratio, flow_regime = self._calculate_order_flow_imbalance(sample_ticks, vwap_dev_pct)
+
+            # 3. Confluencia Multi-Timeframe (MTF: 1m, 5m, 1h)
+            mtf = self._calculate_multi_timeframe_confluence(recent_ticks)
+
+            # 4. Sentimiento NLP con Kernel de Decaimiento Exponencial
             half_life = 45.0 if asset.asset_type == "CRYPTO" else 120.0
             cutoff_news = now - timedelta(hours=24)
             news_stmt = (
@@ -177,43 +343,73 @@ class SignalEngine:
                 recent_news, base_symbol, now, half_life_minutes=half_life
             )
 
-            # 3. Ponderación adaptativa del modelo compuesto
-            # Si hay alta volatilidad o noticias frescas, ajustamos los pesos dinámicamente
-            w_sentiment = 0.40
-            w_momentum = 0.35
-            w_macro = 0.25
+            # 5. Detección Cuantitativa de Régimen de Mercado y Ponderación Dinámica
+            regime, w_sentiment, w_momentum, w_ofi, w_macro = self._detect_market_regime(
+                realized_vol_pct, momentum_score, hl_range_pct
+            )
 
-            composite_score = (
+            raw_composite = (
                 (decay_sentiment * w_sentiment) +
                 (momentum_score * w_momentum) +
+                (ofi_score * w_ofi) +
                 (macro_bias * w_macro)
             )
 
-            # Clasificación de acción sugerida
-            if composite_score >= 0.45:
+            # Aplicar multiplicador de confluencia multi-temporal
+            composite_score = raw_composite * mtf["multiplier"]
+
+            # Clasificación inicial de acción
+            if composite_score >= 0.40:
                 action = "STRONG_BUY"
-            elif composite_score >= 0.16:
+            elif composite_score >= 0.15:
                 action = "BUY"
-            elif composite_score <= -0.45:
+            elif composite_score <= -0.40:
                 action = "STRONG_SELL"
-            elif composite_score <= -0.16:
+            elif composite_score <= -0.15:
                 action = "SELL"
             else:
                 action = "HOLD"
 
-            # 4. Penalización por Spread de Mercado (Microestructura)
+            # 6. Filtro Anti-Whipsaw de Confluencia Multi-Timeframe
+            whipsaw_mitigated = False
+            if mtf["status"] == "COUNTER_TREND_WARNING":
+                # Rebote en fast/medium contra tendencia macro bajista
+                if action in ("BUY", "STRONG_BUY") and mtf["macro_trend"] == "BEARISH":
+                    if composite_score < 0.32:
+                        action = "HOLD"
+                        whipsaw_mitigated = True
+                    else:
+                        action = "BUY"  # Capped at BUY, nunca STRONG_BUY en contratendencia
+                # Retroceso en fast/medium contra tendencia macro alcista
+                elif action in ("SELL", "STRONG_SELL") and mtf["macro_trend"] == "BULLISH":
+                    if composite_score > -0.32:
+                        action = "HOLD"
+                        whipsaw_mitigated = True
+                    else:
+                        action = "SELL"
+
+            # Si hay FULL_CONFLUENCE, elevar acciones claras
+            if mtf["status"] == "FULL_CONFLUENCE":
+                if action == "BUY" and composite_score >= 0.30:
+                    action = "STRONG_BUY"
+                elif action == "SELL" and composite_score <= -0.30:
+                    action = "STRONG_SELL"
+
+            # 7. Penalización por Spread de Mercado (Microestructura)
             spread_penalty = 0.0
             if latest_tick.bid_ask_spread and current_price and current_price > 0:
                 spread_pct = (float(latest_tick.bid_ask_spread) / float(current_price)) * 100.0
-                if spread_pct > 0.08:  # Spread anormalmente amplio
+                if spread_pct > 0.08:
                     spread_penalty = min(0.20, (spread_pct - 0.08) * 1.5)
 
-            # Calibración de confianza mediante función logística
+            # Calibración de confianza mediante función logística + bonus de confluencia
             calibrated_raw = 50.0 + (1.0 / (1.0 + math.exp(-3.5 * abs(composite_score))) - 0.5) * 2.0 * 48.0
-            confidence = min(98.5, max(50.0, calibrated_raw * (1.0 - spread_penalty)))
+            confluence_bonus = 6.0 if mtf["status"] == "FULL_CONFLUENCE" else (
+                -8.0 if mtf["status"] == "COUNTER_TREND_WARNING" else 0.0
+            )
+            confidence = min(98.5, max(50.0, (calibrated_raw + confluence_bonus) * (1.0 - spread_penalty)))
 
-            # 5. Gestión de Riesgo Dinámica Basada en Volatilidad (ATR Empírico)
-            # Volatilidad base por clase de activo
+            # 8. Gestión de Riesgo Dinámica Basada en Volatilidad (ATR Empírico)
             if asset.asset_type == "CRYPTO":
                 base_risk, min_risk, max_risk = 0.018, 0.008, 0.042
             elif asset.asset_type == "COMMODITY":
@@ -221,10 +417,11 @@ class SignalEngine:
             else:
                 base_risk, min_risk, max_risk = 0.006, 0.003, 0.015
 
-            # Escalar riesgo según la volatilidad realizada
-            vol_multiplier = max(0.6, min(2.5, realized_vol_pct / 1.5))
+            # En contratendencia apretamos el stop loss para proteger capital
+            risk_scale = 0.75 if mtf["status"] == "COUNTER_TREND_WARNING" else 1.0
+            vol_multiplier = max(0.6, min(2.5, realized_vol_pct / 1.5)) * risk_scale
             dynamic_risk_pct = max(min_risk, min(max_risk, base_risk * vol_multiplier))
-            rr_ratio = 2.2  # Ratio Riesgo/Recompensa objetivo 1:2.2
+            rr_ratio = 2.2
 
             entry_p = current_price
             if action in ("BUY", "STRONG_BUY"):
@@ -239,12 +436,30 @@ class SignalEngine:
 
             volatility_risk = "HIGH" if realized_vol_pct >= 2.5 else ("MODERATE" if realized_vol_pct >= 1.2 else "LOW")
 
-            # 6. Payload de Explicabilidad Avanzada trigger_factors (JSONB)
+            # Construcción de Rationale transparente
+            if whipsaw_mitigated:
+                rationale = (
+                    f"Señal neutralizada a HOLD por filtro Anti-Whipsaw: "
+                    f"rebote local de {mtf['fast_trend']} contra tendencia macro {mtf['macro_trend']} ({mtf['macro_delta_pct']:+.2f}%)."
+                )
+            elif mtf["status"] == "FULL_CONFLUENCE":
+                rationale = (
+                    f"Señal {action} confirmada con CONFLUENCIA PLENA (1m, 5m y 1h {mtf['macro_trend']}), "
+                    f"Order Flow {flow_regime} (OFI {ofi_score:+.2f}) y régimen {regime}."
+                )
+            else:
+                rationale = (
+                    f"Señal {action} calculada en régimen {regime}: Sentimiento ({decay_sentiment:+.2f}), "
+                    f"Momentum ({price_delta_pct:+.2f}%), OFI ({ofi_score:+.2f}) y Confluencia ({mtf['status']})."
+                )
+
+            # 9. Payload de Explicabilidad Avanzada trigger_factors (JSONB)
             trigger_factors = {
                 "total_composite_score": round(composite_score, 4),
                 "composite_score": round(composite_score, 4),
                 "risk_reward_ratio": rr_ratio,
                 "volatility_risk": volatility_risk,
+                "market_regime": regime,
                 "nlp_sentiment": {
                     "score": round(decay_sentiment, 3),
                     "label": sentiment_label,
@@ -262,6 +477,23 @@ class SignalEngine:
                     "vwap_deviation_pct": round(vwap_dev_pct, 3),
                     "realized_volatility_pct": round(realized_vol_pct, 3),
                     "last_spread": float(latest_tick.bid_ask_spread) if latest_tick.bid_ask_spread else None,
+                },
+                "order_flow": {
+                    "ofi_score": round(ofi_score, 3),
+                    "cvd_ratio": round(cvd_ratio, 3),
+                    "flow_regime": flow_regime,
+                    "weight": w_ofi,
+                    "contribution": round(ofi_score * w_ofi, 4),
+                },
+                "multi_timeframe": {
+                    "confluence_score": mtf["confluence_score"],
+                    "status": mtf["status"],
+                    "fast_trend": mtf["fast_trend"],
+                    "medium_trend": mtf["medium_trend"],
+                    "macro_trend": mtf["macro_trend"],
+                    "fast_delta_pct": mtf["fast_delta_pct"],
+                    "macro_delta_pct": mtf["macro_delta_pct"],
+                    "multiplier": mtf["multiplier"],
                 },
                 "macro_bias": {
                     "bias": round(macro_bias, 3),
@@ -283,14 +515,12 @@ class SignalEngine:
                     "dynamic_risk_pct": round(dynamic_risk_pct * 100, 3),
                     "realized_volatility_pct": round(realized_vol_pct, 3),
                     "spread_penalty_applied": round(spread_penalty, 4),
+                    "whipsaw_mitigated": whipsaw_mitigated,
                 },
-                "rationale": (
-                    f"Señal {action} generada con Sentimiento NLP temporal ({decay_sentiment:+.2f}, half-life {int(half_life)}m), "
-                    f"momentum ({price_delta_pct:+.2f}%) y volatilidad ({realized_vol_pct:.2f}%)."
-                ),
+                "rationale": rationale,
             }
 
-            # 7. Persistencia en Hipertabla predictive_signals
+            # 10. Persistencia en Hipertabla predictive_signals
             signal_time = now
             insert_stmt = (
                 insert(PredictiveSignal)
@@ -311,7 +541,7 @@ class SignalEngine:
             await session.commit()
             signal_id = res.scalar()
 
-        # 8. Emisión a Redis Pub/Sub en Tiempo Real
+        # 11. Emisión a Redis Pub/Sub en Tiempo Real
         signal_payload = {
             "id": signal_id,
             "generated_at": signal_time.isoformat(),

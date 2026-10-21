@@ -90,10 +90,18 @@ async def main():
         print(f"    - Take Profit: ${signal['take_profit']:,.2f}")
     print(f"    - Desglose Factores (trigger_factors JSONB):")
     tf = signal['trigger_factors']
+    print(f"        * Régimen de Mercado: {tf.get('market_regime', 'N/A')}")
     print(f"        * NLP Score: {tf['nlp_sentiment']['score']} (Peso: {tf['nlp_sentiment']['weight']})")
-    print(f"        * Momentum: {tf['technical_momentum']['score']} (Peso: {tf['technical_momentum']['weight']})")
-    print(f"        * Macro: {tf['macro_alignment']['score']} (Régimen: {tf['macro_alignment']['market_regime']})")
+    print(f"        * Momentum: {tf['price_momentum']['score']} (Var: {tf['price_momentum']['change_pct']}%, Peso: {tf['price_momentum']['weight']})")
+    if 'order_flow' in tf:
+        print(f"        * Order Flow OFI: {tf['order_flow']['ofi_score']} (CVD: {tf['order_flow']['cvd_ratio']}, Flujo: {tf['order_flow']['flow_regime']}, Peso: {tf['order_flow']['weight']})")
+    if 'multi_timeframe' in tf:
+        print(f"        * Confluencia MTF: {tf['multi_timeframe']['status']} (Fast: {tf['multi_timeframe']['fast_trend']}, Med: {tf['multi_timeframe']['medium_trend']}, Macro: {tf['multi_timeframe']['macro_trend']}, Score: {tf['multi_timeframe']['confluence_score']})")
+    print(f"        * Macro: {tf['macro_bias']['bias']} (Régimen: {tf['macro_bias']['market_regime']})")
     print(f"        * Rationale: {tf['rationale']}")
+    assert 'order_flow' in tf, "Debe contener métricas de Order Flow Imbalance (OFI)"
+    assert 'multi_timeframe' in tf, "Debe contener confluencia Multi-Timeframe"
+    assert 'market_regime' in tf, "Debe clasificar el régimen de mercado"
 
     # -------------------------------------------------------------------------
     # 3. VERIFICACIÓN DE ENDPOINTS REST MEDIANTE ASGITransport

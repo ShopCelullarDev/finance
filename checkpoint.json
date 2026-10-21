@@ -1,24 +1,27 @@
 {
-  "timestamp": "2026-10-21T12:48:00-04:00",
+  "timestamp": "2026-10-21T14:36:00-04:00",
   "active_model": "Gemini 3.8 Flash (High) / Antigravity AI Orchestrator",
   "git_branch": "main",
   "git_commit": "pending_push",
-  "repo_status": "phase_6a_completed",
+  "repo_status": "phase_6b_completed",
   "active_phase": {
     "number": 6,
     "name": "Fase 6 - Optimización Cuantitativa y Machine Learning del Motor Predictivo",
-    "subtask_id": "6A",
+    "subtask_id": "6B",
     "status": "COMPLETADO_VERIFICADO"
   },
-  "completed_phases": [1, 2, 3, 4, 5, "6A"],
+  "completed_phases": [1, 2, 3, 4, 5, "6A", "6B"],
   "recent_files": [
     "PROJECT_STATE.md",
     "checkpoint.json",
     "semilla.md",
     "bitacora.md",
     "app/services/ai/signal_engine.py",
-    "scripts/test_ai_signals.py"
+    "scripts/test_ai_signals.py",
+    "frontend/src/types/market.ts",
+    "frontend/src/components/common/SignalDetailModal.tsx",
+    "frontend/src/components/trading/SignalsFeed.tsx"
   ],
-  "verification_command": "PYTHONPATH=. .venv/bin/python3 scripts/test_ai_signals.py",
-  "next_action": "Iniciar Fase 6B: Order Flow Imbalance (OFI), Depth Delta L2 y Confluencia Multi-Timeframe."
+  "verification_command": "cd frontend && npm run build && cd .. && PYTHONPATH=. .venv/bin/python3 scripts/test_ai_signals.py",
+  "next_action": "Iniciar Fase 6C: Pipeline de Features, Etiquetado Triple Barrier y Modelo Supervisado LightGBM."
 }

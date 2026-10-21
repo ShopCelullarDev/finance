@@ -88,7 +88,33 @@ export const SignalDetailModal: React.FC<SignalDetailModalProps> = ({ signal, on
                 ${signal.take_profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#1a2333] text-blue-300 border border-[#2b3a54]">
+                Régimen: <strong className="text-white">{tf?.market_regime ?? 'BALANCED_MARKET'}</strong>
+              </span>
+              {tf?.multi_timeframe && (
+                <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${
+                  tf.multi_timeframe.status === 'FULL_CONFLUENCE'
+                    ? 'text-emerald-400 bg-emerald-950/60 border-emerald-500/40'
+                    : tf.multi_timeframe.status === 'COUNTER_TREND_WARNING'
+                    ? 'text-amber-400 bg-amber-950/60 border-amber-500/40'
+                    : 'text-slate-300 bg-slate-800/60 border-slate-700/40'
+                }`}>
+                  {tf.multi_timeframe.status}
+                </span>
+              )}
+            </div>
           </div>
+
+          {/* Rationale del Modelo */}
+          {tf?.rationale && (
+            <div className="p-3.5 rounded-xl bg-[#0b0e14] border border-[#242f42] text-xs text-slate-300 leading-relaxed">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 block mb-1">
+                Tesis y Justificación Algorítmica (AI Rationale)
+              </span>
+              {tf.rationale}
+            </div>
+          )}
 
           {/* Factores del Algoritmo Cuantitativo */}
           <div>
@@ -103,7 +129,7 @@ export const SignalDetailModal: React.FC<SignalDetailModalProps> = ({ signal, on
                 <div className="flex justify-between text-xs mb-1">
                   <span className="font-medium text-slate-300 flex items-center gap-1.5">
                     <Brain className="h-3.5 w-3.5 text-indigo-400" />
-                    Sentimiento NLP Noticias (Peso {tf?.nlp_sentiment?.weight ? tf.nlp_sentiment.weight * 100 : 40}%)
+                    Sentimiento NLP Noticias (Peso {tf?.nlp_sentiment?.weight ? Math.round(tf.nlp_sentiment.weight * 100) : 35}%)
                   </span>
                   <span className="font-mono tabular-nums font-semibold text-indigo-400">
                     Score: {tf?.nlp_sentiment?.score?.toFixed(3) ?? '0.000'} ({tf?.nlp_sentiment?.label ?? 'NEUTRAL'})
@@ -122,7 +148,7 @@ export const SignalDetailModal: React.FC<SignalDetailModalProps> = ({ signal, on
                 <div className="flex justify-between text-xs mb-1">
                   <span className="font-medium text-slate-300 flex items-center gap-1.5">
                     <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
-                    Momentum de Precios Ticks (Peso {tf?.price_momentum?.weight ? tf.price_momentum.weight * 100 : 35}%)
+                    Momentum de Precios Ticks (Peso {tf?.price_momentum?.weight ? Math.round(tf.price_momentum.weight * 100) : 30}%)
                   </span>
                   <span className="font-mono tabular-nums font-semibold text-emerald-400">
                     Var: {tf?.price_momentum?.change_pct ? tf.price_momentum.change_pct.toFixed(2) : '+0.00'}%
@@ -136,12 +162,33 @@ export const SignalDetailModal: React.FC<SignalDetailModalProps> = ({ signal, on
                 </div>
               </div>
 
-              {/* Factor 3: Macro Bias */}
+              {/* Factor 3: Order Flow Imbalance (OFI) */}
+              {tf?.order_flow && (
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-slate-300 flex items-center gap-1.5">
+                      <ShieldAlert className="h-3.5 w-3.5 text-cyan-400" />
+                      Order Flow Imbalance OFI (Peso {Math.round(tf.order_flow.weight * 100)}%)
+                    </span>
+                    <span className="font-mono tabular-nums font-semibold text-cyan-400">
+                      OFI: {tf.order_flow.ofi_score > 0 ? `+${tf.order_flow.ofi_score.toFixed(3)}` : tf.order_flow.ofi_score.toFixed(3)} ({tf.order_flow.flow_regime})
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-[#1c2433] overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full"
+                      style={{ width: `${Math.min(100, Math.max(10, (tf.order_flow.ofi_score + 1) * 50))}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Factor 4: Macro Bias */}
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="font-medium text-slate-300 flex items-center gap-1.5">
                     <Compass className="h-3.5 w-3.5 text-amber-400" />
-                    Sesgo Macro y Predicción Gamma (Peso {tf?.macro_bias?.weight ? tf.macro_bias.weight * 100 : 25}%)
+                    Sesgo Macro y Predicción Gamma (Peso {tf?.macro_bias?.weight ? Math.round(tf.macro_bias.weight * 100) : 20}%)
                   </span>
                   <span className="font-mono tabular-nums font-semibold text-amber-400">
                     Sesgo: {tf?.macro_bias?.bias?.toFixed(2) ?? '0.00'}
@@ -154,6 +201,35 @@ export const SignalDetailModal: React.FC<SignalDetailModalProps> = ({ signal, on
                   />
                 </div>
               </div>
+
+              {/* Factor 5: Confluencia Multi-Timeframe */}
+              {tf?.multi_timeframe && (
+                <div className="pt-2 border-t border-[#1c2433]">
+                  <span className="text-[11px] font-semibold text-slate-400 block mb-1.5">
+                    Alineación Jerárquica de Tendencia (Multi-Timeframe):
+                  </span>
+                  <div className="grid grid-cols-3 gap-2 text-center text-[11px] font-mono">
+                    <div className="p-1.5 rounded bg-[#131923] border border-[#242f42]">
+                      <span className="text-slate-400 block text-[10px]">1m Fast</span>
+                      <span className={tf.multi_timeframe.fast_trend === 'BULLISH' ? 'text-emerald-400 font-bold' : tf.multi_timeframe.fast_trend === 'BEARISH' ? 'text-rose-400 font-bold' : 'text-slate-300'}>
+                        {tf.multi_timeframe.fast_trend} ({tf.multi_timeframe.fast_delta_pct > 0 ? `+${tf.multi_timeframe.fast_delta_pct}%` : `${tf.multi_timeframe.fast_delta_pct}%`})
+                      </span>
+                    </div>
+                    <div className="p-1.5 rounded bg-[#131923] border border-[#242f42]">
+                      <span className="text-slate-400 block text-[10px]">5m Medium</span>
+                      <span className={tf.multi_timeframe.medium_trend === 'BULLISH' ? 'text-emerald-400 font-bold' : tf.multi_timeframe.medium_trend === 'BEARISH' ? 'text-rose-400 font-bold' : 'text-slate-300'}>
+                        {tf.multi_timeframe.medium_trend}
+                      </span>
+                    </div>
+                    <div className="p-1.5 rounded bg-[#131923] border border-[#242f42]">
+                      <span className="text-slate-400 block text-[10px]">1h Macro</span>
+                      <span className={tf.multi_timeframe.macro_trend === 'BULLISH' ? 'text-emerald-400 font-bold' : tf.multi_timeframe.macro_trend === 'BEARISH' ? 'text-rose-400 font-bold' : 'text-slate-300'}>
+                        {tf.multi_timeframe.macro_trend} ({tf.multi_timeframe.macro_delta_pct > 0 ? `+${tf.multi_timeframe.macro_delta_pct}%` : `${tf.multi_timeframe.macro_delta_pct}%`})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Ratio y Riesgo */}
               <div className="pt-2 border-t border-[#1c2433] flex justify-between items-center text-xs text-slate-400">
