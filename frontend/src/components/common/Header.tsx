@@ -1,12 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Activity, ShieldCheck, Zap, Radio, Terminal, Database, RefreshCw, LogOut, UserCheck } from 'lucide-react';
+import { Activity, ShieldCheck, Zap, Radio, Terminal, Database, RefreshCw, LogOut, UserCheck, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface HeaderProps {
-  activeTab: 'trading' | 'admin';
-  setActiveTab: (tab: 'trading' | 'admin') => void;
+  activeTab: 'trading' | 'backtest' | 'admin';
+  setActiveTab: (tab: 'trading' | 'backtest' | 'admin') => void;
   connectionStatus: 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR';
   onEvaluateAI: () => void;
   isEvaluating: boolean;
@@ -84,6 +84,17 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Terminal className="h-3.5 w-3.5" />
             Terminal de Trading
+          </button>
+          <button
+            onClick={() => setActiveTab('backtest')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'backtest'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-[#1c2433]'
+            }`}
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+            Matriz Backtesting
           </button>
           <button
             onClick={() => setActiveTab('admin')}

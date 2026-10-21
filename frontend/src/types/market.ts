@@ -162,3 +162,75 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface BacktestMetadata {
+  asset_symbol: string;
+  ticks_analyzed: number;
+  features_analyzed: number;
+  initial_capital: number;
+  final_equity: number;
+  taker_fee_bps: number;
+  min_ml_confidence: number;
+  max_holding_ticks: number;
+  tested_at: string;
+}
+
+export interface PerformanceMetrics {
+  total_trades: number;
+  winning_trades: number;
+  losing_trades: number;
+  win_rate_pct: number;
+  profit_factor: number;
+  total_return_pct: number;
+  net_profit_usd: number;
+  sharpe_ratio: number;
+  sortino_ratio: number;
+  max_drawdown_pct: number;
+  expectancy_usd: number;
+  payoff_ratio: number;
+  avg_win_usd: number;
+  avg_loss_usd: number;
+  exit_distribution: {
+    TIME_LIMIT: number;
+    STOP_LOSS: number;
+    TAKE_PROFIT: number;
+    TRAILING_STOP?: number;
+  };
+}
+
+export interface WalkForwardFold {
+  fold: number;
+  window: string;
+  start_time: string;
+  end_time: string;
+  trades: number;
+  win_rate_pct: number;
+  profit_factor: number;
+  return_pct: number;
+  sharpe_ratio: number;
+  max_drawdown_pct: number;
+}
+
+export interface SampleTrade {
+  trade_id: number;
+  type: 'LONG' | 'SHORT';
+  entry_time: string;
+  exit_time: string;
+  entry_price: number;
+  exit_price: number;
+  position_size: number;
+  stop_loss: number;
+  take_profit: number;
+  pnl_usd: number;
+  return_pct: number;
+  exit_reason: string;
+  ticks_held: number;
+  equity_after: number;
+}
+
+export interface BacktestResult {
+  metadata: BacktestMetadata;
+  performance_metrics: PerformanceMetrics;
+  walk_forward_matrix: WalkForwardFold[];
+  sample_trades: SampleTrade[];
+}
+

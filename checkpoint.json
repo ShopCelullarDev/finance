@@ -1,32 +1,32 @@
 {
-  "timestamp": "2026-10-21T16:40:00-04:00",
+  "timestamp": "2026-10-21T17:15:00-04:00",
   "active_model": "Gemini 3.8 Flash (High) / Antigravity AI Orchestrator",
   "git_branch": "main",
   "git_commit": "2f7ae60",
-  "repo_status": "phase_6c_completed",
+  "repo_status": "phase_6d_completed",
   "active_phase": {
     "number": 6,
     "name": "Fase 6 - Optimización Cuantitativa y Machine Learning del Motor Predictivo",
-    "subtask_id": "6C",
+    "subtask_id": "6D",
     "status": "COMPLETADO_VERIFICADO"
   },
-  "completed_phases": [1, 2, 3, 4, 5, "6A", "6B", "6C"],
+  "completed_phases": [1, 2, 3, 4, 5, "6A", "6B", "6C", "6D"],
   "recent_files": [
     "PROJECT_STATE.md",
     "checkpoint.json",
     "semilla.md",
     "bitacora.md",
-    "app/services/ai/feature_store.py",
-    "app/services/ai/ml_model.py",
-    "scripts/train_ml_model.py",
-    "app/services/ai/models/lightgbm_signal_model.joblib",
-    "app/services/ai/models/feature_scaler.joblib",
-    "app/services/ai/signal_engine.py",
-    "scripts/test_ai_signals.py",
+    "app/services/ai/backtester.py",
+    "app/api/v1/endpoints/backtest.py",
+    "app/api/v1/router.py",
+    "scripts/run_backtest.py",
+    "app/services/ai/models/backtest_results.json",
     "frontend/src/types/market.ts",
-    "frontend/src/components/common/SignalDetailModal.tsx",
-    "frontend/src/components/trading/SignalsFeed.tsx"
+    "frontend/src/services/api.ts",
+    "frontend/src/components/trading/BacktestDashboard.tsx",
+    "frontend/src/components/common/Header.tsx",
+    "frontend/src/app/page.tsx"
   ],
-  "verification_command": "cd frontend && npm run build && cd .. && PYTHONPATH=. .venv/bin/python3 scripts/test_ai_signals.py",
-  "next_action": "Realizar commit y push a GitHub con las mejoras de Fase 6C. Proceder a Fase 6D (Backtesting Vectorizado) o siguiente directiva del usuario."
+  "verification_command": "cd frontend && npm run build && cd .. && curl -s http://127.0.0.1:8000/api/v1/backtest/latest | head -n 5",
+  "next_action": "Realizar commit y push a GitHub con las mejoras de Fase 6D. Proceder a Fase 7 (Paper Trading & Simulated Order Manager)."
 }

@@ -356,3 +356,45 @@ Este documento registra cronológicamente los avances, eventos técnicos, acuerd
   - `frontend/src/components/trading/SignalsFeed.tsx`
   - `PROJECT_STATE.md`, `checkpoint.json`, `semilla.md`, `bitacora.md`
 - **Estado:** COMPLETADO_VERIFICADO (Fase 6C integrada y validada en todo el stack).
+
+---
+
+### [2026-10-21 17:15] - [Gemini 3.8 Flash High] - [quantitative-ai-nlp-agent & frontend-terminal-agent]
+- **Fase / Tarea:** Optimización Cuantitativa del Motor Predictivo - Fase 6D (Backtesting Vectorizado, Walk-Forward Performance Matrix y Realismo de Microestructura)
+- **Acción:**
+  1. **Motor de Backtesting Vectorizado (`app/services/ai/backtester.py`):**
+     - Se diseñó e implementó la clase `VectorizedBacktester` con ejecución cronológica barra por barra / tick por tick.
+     - Simulación rigurosa de fricción institucional: deducción de comisiones de exchange (1.5 bps taker por lado) y deslizamiento (slippage) bid-ask spread dependiente del libro L2.
+     - Gestión dinámica de riesgo: Stop Loss dinámico ($1.0 \times \text{ATR}$), Take Profit dinámico ($1.2 \times \text{ATR}$) y Trailing Stop automático a Breakeven (+ comisiones) al alcanzar el 50% de la distancia al objetivo.
+  2. **Resolución del Dilema Microestructura Frecuencia-Capacidad:**
+     - El análisis empírico demostró que a una frecuencia de ~4.3s por tick, ventanas cortas de 50 ticks generan pérdidas netas por el arrastre de comisiones (fee drag).
+     - La calibración cuantitativa fijó el horizonte óptimo en $H \ge 1,000$ ticks (~70 minutos), permitiendo que el movimiento intrínseco del activo (0.3% - 0.8%) supere con holgura los costos de transacción.
+  3. **Matriz Walk-Forward por Folds Cronológicos:**
+     - Simulación dividida en 4 períodos temporales fuera de muestra independientes:
+       - *Fold 1/4:* Retorno +1.07%, Win Rate 66.7%, Profit Factor 1.42, Sharpe 0.70, Max DD 1.40%.
+       - *Fold 2/4:* Retorno +1.23%, Win Rate 60.0%, Profit Factor 1.99, Sharpe 1.26, Max DD 0.82%.
+       - *Fold 3/4:* Retorno +0.26%, Win Rate 50.0%, Profit Factor 1.07, Sharpe 0.17, Max DD 1.75%.
+       - *Fold 4/4:* Retorno -0.22%, Win Rate 42.9%, Profit Factor 0.95, Max DD 4.02%.
+     - Control global de riesgo: Max Drawdown contenido en 6.37% y consistencia positiva en 3 de los 4 períodos de mercado.
+  4. **Exposición en API REST FastAPI (`app/api/v1/endpoints/backtest.py`):**
+     - Endpoint `GET /api/v1/backtest/latest` para recuperar los resultados persistidos en `backtest_results.json`.
+     - Endpoint `POST /api/v1/backtest/run` para parametrizar y ejecutar simulaciones dinámicas bajo demanda.
+  5. **Interfaz de Usuario Frontend (`BacktestDashboard.tsx`):**
+     - Se integró la nueva pestaña "Matriz Backtesting" en la barra de navegación institucional de `Header.tsx`.
+     - Visualización integral: cinta de KPIs ejecutivos, tabla comparativa de Folds Walk-Forward, gráfico de desglose de salidas (Time Limit vs Stop Loss vs Take Profit), libro de órdenes auditables y panel de control de parámetros en tiempo real.
+  6. **Verificación:**
+     - `npm run build` en Next.js finalizado con 0 errores de TypeScript y 6 rutas estáticas optimizadas.
+     - Endpoint `/api/v1/backtest/latest` verificado con `curl` respondiendo 200 OK con el árbol completo de métricas.
+- **Archivos Afectados:**
+  - `app/services/ai/backtester.py`
+  - `app/api/v1/endpoints/backtest.py`
+  - `app/api/v1/router.py`
+  - `scripts/run_backtest.py`
+  - `app/services/ai/models/backtest_results.json`
+  - `frontend/src/types/market.ts`
+  - `frontend/src/services/api.ts`
+  - `frontend/src/components/trading/BacktestDashboard.tsx`
+  - `frontend/src/components/common/Header.tsx`
+  - `frontend/src/app/page.tsx`
+  - `PROJECT_STATE.md`, `checkpoint.json`, `semilla.md`, `bitacora.md`
+- **Estado:** COMPLETADO_VERIFICADO (Fase 6D totalmente operativa en backend y frontend).

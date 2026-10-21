@@ -1,4 +1,4 @@
-import { Asset, PredictiveSignal, NewsEvent, SystemTelemetry, SignalAction } from '@/types/market';
+import { Asset, PredictiveSignal, NewsEvent, SystemTelemetry, SignalAction, BacktestResult } from '@/types/market';
 
 const getApiBase = () => {
   if (typeof window !== 'undefined') {
@@ -183,4 +183,37 @@ export async function fetchTelemetry(): Promise<SystemTelemetry> {
       ]
     };
   }
+}
+
+export async function fetchLatestBacktest(): Promise<BacktestResult | null> {
+  try {
+    const res = await fetch(`${getApiBase()}/api/v1/backtest/latest`, { cache: 'no-store' });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`Failed to fetch backtest results: ${res.statusText}`);
+    }
+    return await res.json();
+  } catch (err) {
+    console.warn('[API] Fallback or error fetching backtest:', err);
+    return null;
+  }
+}
+
+export async function triggerBacktestRun(params?: {
+  symbol?: string;
+  limit_ticks?: number;
+  min_confidence?: number;
+  max_holding_ticks?: number;
+  taker_fee_bps?: number;
+}): Promise<BacktestResult> {
+  const res = await fetch(`${getApiBase()}/api/v1/backtest/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params || {}),
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.detail || `Backtest run failed: ${res.statusText}`);
+  }
+  return await res.json();
 }

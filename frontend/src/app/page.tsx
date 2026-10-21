@@ -9,6 +9,7 @@ import { SignalsFeed } from '@/components/trading/SignalsFeed';
 import { OrderbookWidget } from '@/components/trading/OrderbookWidget';
 import { MacroSentimentWidget } from '@/components/trading/MacroSentimentWidget';
 import { NewsFeedWidget } from '@/components/trading/NewsFeedWidget';
+import { BacktestDashboard } from '@/components/trading/BacktestDashboard';
 import { TelemetryDashboard } from '@/components/admin/TelemetryDashboard';
 import { wsClient } from '@/services/websocket';
 import { fetchSignals, fetchNews, fetchTelemetry, triggerSignalEvaluation, normalizeSignal, normalizeNews } from '@/services/api';
@@ -18,7 +19,7 @@ import { Activity } from 'lucide-react';
 
 export default function Home() {
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'trading' | 'admin'>('trading');
+  const [activeTab, setActiveTab] = useState<'trading' | 'backtest' | 'admin'>('trading');
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTC/USDT');
   const [timeframe, setTimeframe] = useState<string>('5m');
   const [connectionStatus, setConnectionStatus] = useState<'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'>('CONNECTING');
@@ -308,7 +309,7 @@ export default function Home() {
 
       {/* Main Content Area */}
       <main className="flex-1 p-4 sm:p-5 max-w-[1920px] mx-auto w-full">
-        {activeTab === 'trading' ? (
+        {activeTab === 'trading' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* Left & Middle Column (8 cols): Chart + Macro & News */}
             <div className="lg:col-span-8 flex flex-col gap-4">
@@ -353,7 +354,13 @@ export default function Home() {
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'backtest' && (
+          <BacktestDashboard />
+        )}
+
+        {activeTab === 'admin' && (
           /* Admin & Telemetry Dashboard (Fase 3) */
           <TelemetryDashboard
             telemetry={telemetry}

@@ -16,7 +16,7 @@ async def run_training():
 
     # 1. Extracción de datos históricos desde TimescaleDB
     print("\n[PASO 1] Extrayendo ticks históricos y noticias desde TimescaleDB...")
-    df_raw, news_events = await feature_store.fetch_historical_dataset(max_ticks=6000)
+    df_raw, news_events = await feature_store.fetch_historical_dataset(max_ticks=25000)
     print(f"[+] Ticks cargados: {len(df_raw)} filas | Noticias: {len(news_events)} eventos.")
     print(f"    Rango temporal: {df_raw['time'].iloc[0]}  --->  {df_raw['time'].iloc[-1]}")
     print(f"    Precio inicial: ${df_raw['price'].iloc[0]:,.2f} | Precio final: ${df_raw['price'].iloc[-1]:,.2f}")
@@ -32,9 +32,9 @@ async def run_training():
     df_labeled = feature_store.apply_triple_barrier_labeling(
         df_features=df_features,
         full_df=df_raw,
-        k_tp=1.0,
+        k_tp=1.2,
         k_sl=1.0,
-        max_holding_ticks=80,
+        max_holding_ticks=100,
     )
 
     label_counts = df_labeled["target_label"].value_counts().to_dict()

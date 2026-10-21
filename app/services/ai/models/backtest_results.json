@@ -1,0 +1,458 @@
+{
+  "metadata": {
+    "asset_symbol": "BTC/USDT",
+    "ticks_analyzed": 25000,
+    "features_analyzed": 24760,
+    "initial_capital": 10000.0,
+    "final_equity": 9641.72,
+    "taker_fee_bps": 1.4999999999999998,
+    "min_ml_confidence": 52.0,
+    "max_holding_ticks": 1000,
+    "tested_at": "2026-10-21T21:09:30.543864+00:00"
+  },
+  "performance_metrics": {
+    "total_trades": 25,
+    "winning_trades": 11,
+    "losing_trades": 14,
+    "win_rate_pct": 44.0,
+    "profit_factor": 0.78,
+    "total_return_pct": -3.58,
+    "net_profit_usd": -358.28,
+    "sharpe_ratio": -0.52,
+    "sortino_ratio": -1.26,
+    "max_drawdown_pct": 6.37,
+    "expectancy_usd": -14.33,
+    "payoff_ratio": 0.99,
+    "avg_win_usd": 113.59,
+    "avg_loss_usd": 114.84,
+    "exit_distribution": {
+      "TIME_LIMIT": 19,
+      "STOP_LOSS": 5,
+      "TAKE_PROFIT": 1
+    }
+  },
+  "walk_forward_matrix": [
+    {
+      "fold": 1,
+      "window": "Fold 1/4",
+      "start_time": "2026-10-20 19:11:22.016000+00:00",
+      "end_time": "2026-10-20 20:55:43.016000+00:00",
+      "trades": 6,
+      "win_rate_pct": 66.67,
+      "profit_factor": 1.42,
+      "return_pct": 1.07,
+      "sharpe_ratio": 0.7,
+      "max_drawdown_pct": 1.4
+    },
+    {
+      "fold": 2,
+      "window": "Fold 2/4",
+      "start_time": "2026-10-20 20:55:44.016000+00:00",
+      "end_time": "2026-10-20 22:40:17.015000+00:00",
+      "trades": 5,
+      "win_rate_pct": 60.0,
+      "profit_factor": 1.99,
+      "return_pct": 1.23,
+      "sharpe_ratio": 1.26,
+      "max_drawdown_pct": 0.82
+    },
+    {
+      "fold": 3,
+      "window": "Fold 3/4",
+      "start_time": "2026-10-20 22:40:18.016000+00:00",
+      "end_time": "2026-10-21 16:05:21.016000+00:00",
+      "trades": 6,
+      "win_rate_pct": 50.0,
+      "profit_factor": 1.07,
+      "return_pct": 0.26,
+      "sharpe_ratio": 0.17,
+      "max_drawdown_pct": 1.75
+    },
+    {
+      "fold": 4,
+      "window": "Fold 4/4",
+      "start_time": "2026-10-21 16:05:22.014000+00:00",
+      "end_time": "2026-10-21 17:48:49.016000+00:00",
+      "trades": 7,
+      "win_rate_pct": 42.86,
+      "profit_factor": 0.95,
+      "return_pct": -0.22,
+      "sharpe_ratio": -0.06,
+      "max_drawdown_pct": 4.02
+    }
+  ],
+  "sample_trades": [
+    {
+      "trade_id": 1,
+      "type": "LONG",
+      "entry_time": "2026-10-20T19:11:34.016000",
+      "exit_time": "2026-10-20T19:28:47.016000",
+      "entry_price": 82534.39,
+      "exit_price": 82420.97,
+      "position_size": 83333.33,
+      "stop_loss": 82385.82,
+      "take_profit": 82861.22,
+      "pnl_usd": -139.52,
+      "return_pct": -0.167,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 9860.48
+    },
+    {
+      "trade_id": 2,
+      "type": "LONG",
+      "entry_time": "2026-10-20T19:28:47.016000",
+      "exit_time": "2026-10-20T19:45:27.016000",
+      "entry_price": 82420.98,
+      "exit_price": 82622.0,
+      "position_size": 82170.68,
+      "stop_loss": 82451.88,
+      "take_profit": 82747.36,
+      "pnl_usd": 175.76,
+      "return_pct": 0.214,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 10036.24
+    },
+    {
+      "trade_id": 3,
+      "type": "LONG",
+      "entry_time": "2026-10-20T19:45:27.016000",
+      "exit_time": "2026-10-20T20:02:07.014000",
+      "entry_price": 82622.01,
+      "exit_price": 82532.01,
+      "position_size": 83635.34,
+      "stop_loss": 82473.29,
+      "take_profit": 82949.19,
+      "pnl_usd": -116.19,
+      "return_pct": -0.139,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 9920.05
+    },
+    {
+      "trade_id": 4,
+      "type": "LONG",
+      "entry_time": "2026-10-20T20:02:07.014000",
+      "exit_time": "2026-10-20T20:19:00.016000",
+      "entry_price": 82532.01,
+      "exit_price": 82590.01,
+      "position_size": 82667.05,
+      "stop_loss": 82383.46,
+      "take_profit": 82858.84,
+      "pnl_usd": 33.28,
+      "return_pct": 0.04,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 9953.33
+    },
+    {
+      "trade_id": 5,
+      "type": "LONG",
+      "entry_time": "2026-10-20T20:19:00.016000",
+      "exit_time": "2026-10-20T20:35:55.016000",
+      "entry_price": 82590.01,
+      "exit_price": 82748.99,
+      "position_size": 82944.42,
+      "stop_loss": 82441.35,
+      "take_profit": 82917.07,
+      "pnl_usd": 134.77,
+      "return_pct": 0.162,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 10088.1
+    },
+    {
+      "trade_id": 6,
+      "type": "LONG",
+      "entry_time": "2026-10-20T20:35:55.016000",
+      "exit_time": "2026-10-20T20:52:42.014000",
+      "entry_price": 82749.0,
+      "exit_price": 82792.0,
+      "position_size": 84067.5,
+      "stop_loss": 82600.05,
+      "take_profit": 83076.68,
+      "pnl_usd": 18.46,
+      "return_pct": 0.022,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 10106.56
+    },
+    {
+      "trade_id": 7,
+      "type": "LONG",
+      "entry_time": "2026-10-20T20:52:42.014000",
+      "exit_time": "2026-10-20T21:09:35.016000",
+      "entry_price": 82792.01,
+      "exit_price": 82901.77,
+      "position_size": 84221.37,
+      "stop_loss": 82642.98,
+      "take_profit": 83119.86,
+      "pnl_usd": 86.39,
+      "return_pct": 0.103,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 10192.95
+    },
+    {
+      "trade_id": 8,
+      "type": "LONG",
+      "entry_time": "2026-10-20T21:09:35.016000",
+      "exit_time": "2026-10-20T21:26:23.017000",
+      "entry_price": 82901.78,
+      "exit_price": 82903.37,
+      "position_size": 84941.28,
+      "stop_loss": 82752.55,
+      "take_profit": 83230.07,
+      "pnl_usd": -23.85,
+      "return_pct": -0.028,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 10169.1
+    },
+    {
+      "trade_id": 9,
+      "type": "LONG",
+      "entry_time": "2026-10-20T21:26:31.014000",
+      "exit_time": "2026-10-20T21:43:26.017000",
+      "entry_price": 82903.38,
+      "exit_price": 82876.01,
+      "position_size": 84742.5,
+      "stop_loss": 82754.15,
+      "take_profit": 83231.67,
+      "pnl_usd": -53.4,
+      "return_pct": -0.063,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 10115.7
+    },
+    {
+      "trade_id": 10,
+      "type": "LONG",
+      "entry_time": "2026-10-20T21:43:26.017000",
+      "exit_time": "2026-10-20T22:00:49.016000",
+      "entry_price": 82876.01,
+      "exit_price": 82962.29,
+      "position_size": 84297.5,
+      "stop_loss": 82726.84,
+      "take_profit": 83204.2,
+      "pnl_usd": 62.46,
+      "return_pct": 0.074,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 10178.16
+    },
+    {
+      "trade_id": 11,
+      "type": "SHORT",
+      "entry_time": "2026-10-20T22:02:07.016000",
+      "exit_time": "2026-10-20T22:17:34.017000",
+      "entry_price": 82988.92,
+      "exit_price": 83138.31,
+      "position_size": 84818.0,
+      "stop_loss": 83138.31,
+      "take_profit": 82660.29,
+      "pnl_usd": -178.12,
+      "return_pct": -0.21,
+      "exit_reason": "STOP_LOSS",
+      "ticks_held": 926,
+      "equity_after": 10000.04
+    },
+    {
+      "trade_id": 12,
+      "type": "SHORT",
+      "entry_time": "2026-10-20T22:17:54.016000",
+      "exit_time": "2026-10-20T22:34:38.016000",
+      "entry_price": 83129.99,
+      "exit_price": 83029.7,
+      "position_size": 83333.64,
+      "stop_loss": 83279.63,
+      "take_profit": 82800.8,
+      "pnl_usd": 75.54,
+      "return_pct": 0.091,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 10075.57
+    },
+    {
+      "trade_id": 13,
+      "type": "SHORT",
+      "entry_time": "2026-10-20T22:36:49.016000",
+      "exit_time": "2026-10-20T22:53:40.014000",
+      "entry_price": 83025.78,
+      "exit_price": 83064.0,
+      "position_size": 83963.11,
+      "stop_loss": 83175.23,
+      "take_profit": 82697.0,
+      "pnl_usd": -63.84,
+      "return_pct": -0.076,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 10011.73
+    },
+    {
+      "trade_id": 14,
+      "type": "LONG",
+      "entry_time": "2026-10-20T22:53:40.014000",
+      "exit_time": "2026-10-20T23:10:23.016000",
+      "entry_price": 83064.01,
+      "exit_price": 82960.01,
+      "position_size": 83431.1,
+      "stop_loss": 82914.49,
+      "take_profit": 83392.94,
+      "pnl_usd": -129.49,
+      "return_pct": -0.155,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 9882.24
+    },
+    {
+      "trade_id": 15,
+      "type": "LONG",
+      "entry_time": "2026-10-20T23:10:40.016000",
+      "exit_time": "2026-10-20T23:27:24.016000",
+      "entry_price": 82958.01,
+      "exit_price": 82922.08,
+      "position_size": 82352.03,
+      "stop_loss": 82808.69,
+      "take_profit": 83286.53,
+      "pnl_usd": -60.38,
+      "return_pct": -0.073,
+      "exit_reason": "TIME_LIMIT",
+      "ticks_held": 1000,
+      "equity_after": 9821.86
+    }
+  ],
+  "equity_curve": [
+    {
+      "tick_index": 0,
+      "time": "2026-10-20T16:22:06.016000",
+      "equity": 10000.0
+    },
+    {
+      "tick_index": 1251,
+      "time": "2026-10-20T19:28:47.016000",
+      "equity": 9860.48
+    },
+    {
+      "tick_index": 2251,
+      "time": "2026-10-20T19:45:27.016000",
+      "equity": 10036.24
+    },
+    {
+      "tick_index": 3251,
+      "time": "2026-10-20T20:02:07.014000",
+      "equity": 9920.05
+    },
+    {
+      "tick_index": 4251,
+      "time": "2026-10-20T20:19:00.016000",
+      "equity": 9953.33
+    },
+    {
+      "tick_index": 5251,
+      "time": "2026-10-20T20:35:55.016000",
+      "equity": 10088.1
+    },
+    {
+      "tick_index": 6251,
+      "time": "2026-10-20T20:52:42.014000",
+      "equity": 10106.56
+    },
+    {
+      "tick_index": 7251,
+      "time": "2026-10-20T21:09:35.016000",
+      "equity": 10192.95
+    },
+    {
+      "tick_index": 8251,
+      "time": "2026-10-20T21:26:23.017000",
+      "equity": 10169.1
+    },
+    {
+      "tick_index": 9259,
+      "time": "2026-10-20T21:43:26.017000",
+      "equity": 10115.7
+    },
+    {
+      "tick_index": 10259,
+      "time": "2026-10-20T22:00:49.016000",
+      "equity": 10178.16
+    },
+    {
+      "tick_index": 11263,
+      "time": "2026-10-20T22:17:34.017000",
+      "equity": 10000.04
+    },
+    {
+      "tick_index": 12283,
+      "time": "2026-10-20T22:34:38.016000",
+      "equity": 10075.57
+    },
+    {
+      "tick_index": 13411,
+      "time": "2026-10-20T22:53:40.014000",
+      "equity": 10011.73
+    },
+    {
+      "tick_index": 14411,
+      "time": "2026-10-20T23:10:23.016000",
+      "equity": 9882.24
+    },
+    {
+      "tick_index": 15427,
+      "time": "2026-10-20T23:27:24.016000",
+      "equity": 9821.86
+    },
+    {
+      "tick_index": 16427,
+      "time": "2026-10-20T23:44:04.016000",
+      "equity": 9844.59
+    },
+    {
+      "tick_index": 16872,
+      "time": "2026-10-21T15:32:54.016000",
+      "equity": 10144.84
+    },
+    {
+      "tick_index": 17986,
+      "time": "2026-10-21T15:51:38.016000",
+      "equity": 10297.24
+    },
+    {
+      "tick_index": 18983,
+      "time": "2026-10-21T16:08:15.016000",
+      "equity": 10117.04
+    },
+    {
+      "tick_index": 20020,
+      "time": "2026-10-21T16:25:32.014000",
+      "equity": 10053.96
+    },
+    {
+      "tick_index": 20814,
+      "time": "2026-10-21T16:38:47.016000",
+      "equity": 9878.01
+    },
+    {
+      "tick_index": 21833,
+      "time": "2026-10-21T16:55:56.016000",
+      "equity": 10065.46
+    },
+    {
+      "tick_index": 22788,
+      "time": "2026-10-21T17:11:52.016000",
+      "equity": 9889.31
+    },
+    {
+      "tick_index": 23691,
+      "time": "2026-10-21T17:26:57.014000",
+      "equity": 9716.24
+    },
+    {
+      "tick_index": 24726,
+      "time": "2026-10-21T17:44:14.016000",
+      "equity": 9641.72
+    }
+  ]
+}
