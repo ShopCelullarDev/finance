@@ -231,6 +231,53 @@ export const SignalDetailModal: React.FC<SignalDetailModalProps> = ({ signal, on
                 </div>
               )}
 
+              {/* Factor 6: Inferencia Supervisada Machine Learning (LightGBM) */}
+              {tf?.ml_supervised && (
+                <div className="pt-2 border-t border-[#1c2433]">
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="font-medium text-slate-300 flex items-center gap-1.5">
+                      <Cpu className="h-3.5 w-3.5 text-purple-400" />
+                      Clasificador Supervisado LightGBM (Triple Barrier)
+                    </span>
+                    <span className="font-mono tabular-nums font-semibold text-purple-400">
+                      Predicción: {tf.ml_supervised.ml_action} ({tf.ml_supervised.confidence_score.toFixed(1)}%)
+                    </span>
+                  </div>
+                  {/* Multi-class probabilities */}
+                  <div className="grid grid-cols-3 gap-2 text-center text-[11px] font-mono mb-2">
+                    <div className="p-1.5 rounded bg-[#131923] border border-emerald-900/40">
+                      <span className="text-slate-400 block text-[10px]">P(BUY)</span>
+                      <span className="text-emerald-400 font-bold">
+                        {(tf.ml_supervised.probabilities.p_buy * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="p-1.5 rounded bg-[#131923] border border-rose-900/40">
+                      <span className="text-slate-400 block text-[10px]">P(SELL)</span>
+                      <span className="text-rose-400 font-bold">
+                        {(tf.ml_supervised.probabilities.p_sell * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="p-1.5 rounded bg-[#131923] border border-amber-900/40">
+                      <span className="text-slate-400 block text-[10px]">P(NEUTRAL)</span>
+                      <span className="text-amber-400 font-bold">
+                        {(tf.ml_supervised.probabilities.p_neutral * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                  {/* Top Features */}
+                  {tf.ml_supervised.top_features && tf.ml_supervised.top_features.length > 0 && (
+                    <div className="text-[10px] text-slate-400 flex flex-wrap gap-1.5 items-center">
+                      <span className="text-slate-500 font-medium">Top Drivers:</span>
+                      {tf.ml_supervised.top_features.slice(0, 4).map(([feat, val]) => (
+                        <span key={feat} className="px-1.5 py-0.5 rounded bg-[#1c2433] text-slate-300 font-mono">
+                          {feat}: {Number(val).toFixed(2)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Ratio y Riesgo */}
               <div className="pt-2 border-t border-[#1c2433] flex justify-between items-center text-xs text-slate-400">
                 <span>Ratio Riesgo/Recompensa: <strong className="text-slate-100 font-mono">1 : {tf?.risk_reward_ratio?.toFixed(1) ?? '2.2'}</strong></span>

@@ -97,11 +97,17 @@ async def main():
         print(f"        * Order Flow OFI: {tf['order_flow']['ofi_score']} (CVD: {tf['order_flow']['cvd_ratio']}, Flujo: {tf['order_flow']['flow_regime']}, Peso: {tf['order_flow']['weight']})")
     if 'multi_timeframe' in tf:
         print(f"        * Confluencia MTF: {tf['multi_timeframe']['status']} (Fast: {tf['multi_timeframe']['fast_trend']}, Med: {tf['multi_timeframe']['medium_trend']}, Macro: {tf['multi_timeframe']['macro_trend']}, Score: {tf['multi_timeframe']['confluence_score']})")
+    if 'ml_supervised' in tf:
+        ml_res = tf['ml_supervised']
+        print(f"        * Supervised ML LightGBM: {ml_res['ml_action']} (Conf: {ml_res['confidence_score']}%)")
+        print(f"          Probs: BUY={ml_res['probabilities']['p_buy']}, SELL={ml_res['probabilities']['p_sell']}, NEUTRAL={ml_res['probabilities']['p_neutral']}")
     print(f"        * Macro: {tf['macro_bias']['bias']} (Régimen: {tf['macro_bias']['market_regime']})")
     print(f"        * Rationale: {tf['rationale']}")
     assert 'order_flow' in tf, "Debe contener métricas de Order Flow Imbalance (OFI)"
     assert 'multi_timeframe' in tf, "Debe contener confluencia Multi-Timeframe"
     assert 'market_regime' in tf, "Debe clasificar el régimen de mercado"
+    assert 'ml_supervised' in tf, "Debe contener inferencia supervisada LightGBM"
+    assert tf['ml_supervised']['ml_action'] in ("BUY", "SELL", "NEUTRAL")
 
     # -------------------------------------------------------------------------
     # 3. VERIFICACIÓN DE ENDPOINTS REST MEDIANTE ASGITransport

@@ -77,6 +77,17 @@ export interface TriggerFactors {
     market_regime?: string;
   };
   market_regime?: string;
+  ml_supervised?: {
+    ml_action: string;
+    confidence_score: number;
+    probabilities: {
+      p_buy: number;
+      p_sell: number;
+      p_neutral: number;
+    };
+    top_features?: [string, number][];
+    error?: string;
+  };
   total_composite_score: number;
   risk_reward_ratio: number;
   volatility_risk: string;

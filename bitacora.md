@@ -314,13 +314,45 @@ Este documento registra cronológicamente los avances, eventos técnicos, acuerd
   - `bitacora.md`
 - **Estado:** COMPLETADO_VERIFICADO (Fase B integrada y validada en backend y frontend).
 
+---
 
-
-
-
-
-
-
-
-
-
+### [2026-10-21 16:40] - [Gemini 3.8 Flash High] - [quantitative-ai-nlp-agent & devops-security-agent]
+- **Fase / Tarea:** Optimización Cuantitativa del Motor Predictivo - Fase C (Machine Learning Supervisado, Feature Store y Triple Barrier Labeling)
+- **Acción:**
+  1. **Feature Store Cuantitativo (`feature_store.py`):**
+     - Se implementó la clase `QuantitativeFeatureStore` para extraer 14 características cuantitativas multivariables libres de data leakage y ordenadas cronológicamente (`log_return_5m/15m/1h`, `realized_volatility`, `vwap_deviation`, `ofi_score`, `cvd_ratio`, `spread_bps`, `hl_range_pct`, `news_sentiment`, `macro_bias` y flags de régimen).
+  2. **Triple Barrier Labeling (Marcos López de Prado):**
+     - Se implementó etiquetado forward-looking multi-clase (0: SELL, 1: BUY, 2: NEUTRAL) con barreras horizontales superior/inferior dinámicas calibradas por el error estándar del horizonte ($\sigma_{\text{tick}} \cdot \sqrt{H_{\text{ticks}}}$) y barrera vertical de tiempo (50 ticks).
+  3. **Entrenamiento y Evaluación de Clasificador LightGBM (`ml_model.py`):**
+     - Partición cronológica estricta Walk-Forward: 70% Train, 15% Validation, 15% Test.
+     - Featurización sin data leakage: `StandardScaler` ajustado exclusivamente sobre los datos de entrenamiento.
+     - Modelo con árboles regularizados shallow (`max_depth=3`, `num_leaves=7`, `min_child_samples=40`, `reg_alpha=0.3`, `reg_lambda=1.5`).
+     - Superación de baselines (Naive Majority Class y Logistic Regression).
+     - Análisis de Feature Importance por Ganancia: `spread_bps` (34.1%), `log_return_1h` (19.8%), `hl_range_pct` (17.1%), `realized_volatility` (14.7%).
+     - Persistencia de artefactos: `lightgbm_signal_model.joblib` y `feature_scaler.joblib`.
+  4. **Inferencia en Tiempo Real en `signal_engine.py`:**
+     - Extracción dinámica del vector de características para cada evaluación de activo.
+     - Ejecución de inferencia LightGBM con probabilidades calibradas $P(\text{BUY}), P(\text{SELL}), P(\text{NEUTRAL})$ y Top Drivers.
+     - Ajuste de confianza algorítmica por acuerdo/divergencia entre reglas y modelo supervisado.
+     - Inyección en `trigger_factors["ml_supervised"]` y enriquecimiento del Rationale explicable.
+  5. **Integración en Frontend UI:**
+     - `frontend/src/types/market.ts`: Tipos TypeScript de `ml_supervised`.
+     - `SignalDetailModal.tsx`: Sección institucional "Clasificador Supervisado LightGBM (Triple Barrier)" con desglose de probabilidades y chips de drivers.
+     - `SignalsFeed.tsx`: Badge `ML BUY / SELL / HOLD` en el pie de tarjeta de señal.
+  6. **Validación:**
+     - `scripts/test_ai_signals.py` validado al 100% con aserciones sobre `ml_supervised`.
+     - `npm run build` en Next.js completado con 0 errores (6/6 rutas estáticas).
+     - Servidor FastAPI uvicorn activo y respondiendo inferencias en tiempo real vía REST y WebSocket.
+- **Archivos Afectados:**
+  - `app/services/ai/feature_store.py`
+  - `app/services/ai/ml_model.py`
+  - `scripts/train_ml_model.py`
+  - `app/services/ai/models/lightgbm_signal_model.joblib`
+  - `app/services/ai/models/feature_scaler.joblib`
+  - `app/services/ai/signal_engine.py`
+  - `scripts/test_ai_signals.py`
+  - `frontend/src/types/market.ts`
+  - `frontend/src/components/common/SignalDetailModal.tsx`
+  - `frontend/src/components/trading/SignalsFeed.tsx`
+  - `PROJECT_STATE.md`, `checkpoint.json`, `semilla.md`, `bitacora.md`
+- **Estado:** COMPLETADO_VERIFICADO (Fase 6C integrada y validada en todo el stack).

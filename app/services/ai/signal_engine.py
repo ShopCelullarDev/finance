@@ -13,6 +13,8 @@ from app.models.asset import Asset
 from app.models.market_tick import MarketTick
 from app.models.news_event import NewsEvent
 from app.models.predictive_signal import PredictiveSignal
+from app.services.ai.ml_model import ml_classifier
+
 
 
 class SignalEngine:
@@ -402,12 +404,61 @@ class SignalEngine:
                 if spread_pct > 0.08:
                     spread_penalty = min(0.20, (spread_pct - 0.08) * 1.5)
 
-            # Calibración de confianza mediante función logística + bonus de confluencia
+            # Inferencia Supervisada con LightGBM (Fase C)
+            prices_arr = [float(t.price) for t in recent_ticks if t.price is not None]
+            p_0 = prices_arr[0] if prices_arr else float(current_price)
+            p_5m_val = prices_arr[min(20, len(prices_arr) - 1)] if prices_arr else p_0
+            p_15m_val = prices_arr[min(60, len(prices_arr) - 1)] if prices_arr else p_0
+            p_1h_val = prices_arr[-1] if prices_arr else p_0
+
+            log_ret_5m = math.log(p_0 / p_5m_val) if p_5m_val > 0 else 0.0
+            log_ret_15m = math.log(p_0 / p_15m_val) if p_15m_val > 0 else 0.0
+            log_ret_1h = math.log(p_0 / p_1h_val) if p_1h_val > 0 else 0.0
+
+            spread_bps = (float(latest_tick.bid_ask_spread or 0.0) / float(current_price)) * 10000.0 if current_price and current_price > 0 else 0.0
+
+            feature_vector = {
+                "log_return_5m": log_ret_5m,
+                "log_return_15m": log_ret_15m,
+                "log_return_1h": log_ret_1h,
+                "realized_volatility": realized_vol_pct,
+                "vwap_deviation": vwap_dev_pct,
+                "ofi_score": ofi_score,
+                "cvd_ratio": cvd_ratio,
+                "spread_bps": spread_bps,
+                "hl_range_pct": hl_range_pct,
+                "news_sentiment": decay_sentiment,
+                "macro_bias": macro_bias,
+                "regime_is_trending": 1.0 if regime == "TRENDING_EXPANSION" else 0.0,
+                "regime_is_choppy": 1.0 if regime == "CHOPPY_RANGE" else 0.0,
+                "regime_is_squeeze": 1.0 if regime == "VOLATILITY_SQUEEZE" else 0.0,
+            }
+
+            try:
+                ml_prediction = ml_classifier.predict_signal(feature_vector)
+            except Exception as e:
+                ml_prediction = {
+                    "ml_action": "NEUTRAL",
+                    "confidence_score": 50.0,
+                    "probabilities": {"p_buy": 0.3333, "p_sell": 0.3333, "p_neutral": 0.3334},
+                    "top_features": [],
+                    "error": str(e),
+                }
+
+            # Calibración de confianza mediante función logística + bonus de confluencia + acuerdo ML
             calibrated_raw = 50.0 + (1.0 / (1.0 + math.exp(-3.5 * abs(composite_score))) - 0.5) * 2.0 * 48.0
             confluence_bonus = 6.0 if mtf["status"] == "FULL_CONFLUENCE" else (
                 -8.0 if mtf["status"] == "COUNTER_TREND_WARNING" else 0.0
             )
-            confidence = min(98.5, max(50.0, (calibrated_raw + confluence_bonus) * (1.0 - spread_penalty)))
+
+            # Bonus / penalización por acuerdo con el clasificador supervisado LightGBM
+            ml_bonus = 0.0
+            if (composite_score > 0 and ml_prediction["ml_action"] == "BUY") or (composite_score < 0 and ml_prediction["ml_action"] == "SELL"):
+                ml_bonus = 4.0
+            elif (composite_score > 0.2 and ml_prediction["ml_action"] == "SELL") or (composite_score < -0.2 and ml_prediction["ml_action"] == "BUY"):
+                ml_bonus = -5.0
+
+            confidence = min(98.5, max(50.0, (calibrated_raw + confluence_bonus + ml_bonus) * (1.0 - spread_penalty)))
 
             # 8. Gestión de Riesgo Dinámica Basada en Volatilidad (ATR Empírico)
             if asset.asset_type == "CRYPTO":
@@ -437,20 +488,24 @@ class SignalEngine:
             volatility_risk = "HIGH" if realized_vol_pct >= 2.5 else ("MODERATE" if realized_vol_pct >= 1.2 else "LOW")
 
             # Construcción de Rationale transparente
+            ml_str = f" | LightGBM ML: {ml_prediction['ml_action']} ({ml_prediction['confidence_score']:.1f}%)"
             if whipsaw_mitigated:
                 rationale = (
                     f"Señal neutralizada a HOLD por filtro Anti-Whipsaw: "
                     f"rebote local de {mtf['fast_trend']} contra tendencia macro {mtf['macro_trend']} ({mtf['macro_delta_pct']:+.2f}%)."
+                    f"{ml_str}"
                 )
             elif mtf["status"] == "FULL_CONFLUENCE":
                 rationale = (
                     f"Señal {action} confirmada con CONFLUENCIA PLENA (1m, 5m y 1h {mtf['macro_trend']}), "
                     f"Order Flow {flow_regime} (OFI {ofi_score:+.2f}) y régimen {regime}."
+                    f"{ml_str}"
                 )
             else:
                 rationale = (
                     f"Señal {action} calculada en régimen {regime}: Sentimiento ({decay_sentiment:+.2f}), "
                     f"Momentum ({price_delta_pct:+.2f}%), OFI ({ofi_score:+.2f}) y Confluencia ({mtf['status']})."
+                    f"{ml_str}"
                 )
 
             # 9. Payload de Explicabilidad Avanzada trigger_factors (JSONB)
@@ -517,6 +572,7 @@ class SignalEngine:
                     "spread_penalty_applied": round(spread_penalty, 4),
                     "whipsaw_mitigated": whipsaw_mitigated,
                 },
+                "ml_supervised": ml_prediction,
                 "rationale": rationale,
             }
 

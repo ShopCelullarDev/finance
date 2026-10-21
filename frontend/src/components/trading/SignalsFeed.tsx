@@ -178,6 +178,11 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
                         {signal.trigger_factors.market_regime}
                       </span>
                     )}
+                    {signal.trigger_factors?.ml_supervised && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] bg-purple-950/60 text-purple-300 font-mono border border-purple-500/30">
+                        ML {signal.trigger_factors.ml_supervised.ml_action}
+                      </span>
+                    )}
                   </div>
                   <span className="flex items-center gap-0.5 text-blue-400 hover:text-blue-300 font-medium">
                     Ver Explicabilidad <ChevronRight className="h-3 w-3" />
