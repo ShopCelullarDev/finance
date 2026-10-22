@@ -9,6 +9,7 @@ class PaperAccountResponse(BaseModel):
 
     id: UUID
     name: str
+    account_type: str = "SIMULATED"
     initial_balance: float
     current_balance: float
     allocated_margin: float
@@ -108,8 +109,21 @@ class PositionSizingResponse(BaseModel):
     notes: str
 
 
+class FundAccountRequest(BaseModel):
+    amount: float = Field(..., gt=0, le=10000000.0, description="Monto en USDT a ingresar o fijar")
+    operation_type: str = Field("SET", description="'SET' para fijar saldo exacto, 'DEPOSIT' para sumar saldo")
+    account_type: str = Field("REAL", description="'REAL' o 'SIMULATED'")
+
+
+class DualPortfolioSummaryResponse(BaseModel):
+    simulated: PaperAccountResponse
+    real: PaperAccountResponse
+    active_mode: str = "SIMULATED"
+
+
 class OrderDispatcherConfigRequest(BaseModel):
     auto_trade_enabled: Optional[bool] = Field(None, description="Habilitar o pausar el auto-trading")
+    trading_mode: Optional[str] = Field(None, description="Modo de ejecución: 'SIMULATED' (Ficticio) o 'REAL' (En Vivo)")
     min_confidence: Optional[float] = Field(None, ge=40.0, le=95.0, description="Umbral mínimo de confianza (ej: 55.0)")
     risk_per_trade_pct: Optional[float] = Field(None, ge=0.1, le=10.0, description="Riesgo porcentual por trade (ej: 1.0)")
     trade_amount_usd: Optional[float] = Field(None, ge=10.0, le=1000000.0, description="Monto en USD asignado para tradear (ej: 1000.0)")

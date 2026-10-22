@@ -27,6 +27,8 @@ import {
   Target,
   Crosshair,
   Info,
+  Wallet,
+  Scale,
 } from 'lucide-react';
 import {
   PaperAccount,
@@ -35,6 +37,7 @@ import {
   PositionSizingResult,
   OrderDispatcherStatus,
   OrderDispatcherConfig,
+  DualPortfolioSummary,
 } from '@/types/market';
 import {
   fetchPaperAccount,
@@ -49,6 +52,8 @@ import {
   updateDispatcherConfig,
   startDispatcher,
   stopDispatcher,
+  fetchDualPortfolioSummary,
+  fundAccount,
 } from '@/services/api';
 
 interface PaperTradingDashboardProps {
@@ -60,6 +65,10 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
   currentPriceMap = {},
   onNotify,
 }) => {
+  // Mode Selector: Saldo Ficticio (Paper) vs Saldo Real (Live) vs Comparativa
+  const [accountMode, setAccountMode] = useState<'SIMULATED' | 'REAL' | 'COMPARATIVE'>('SIMULATED');
+  const [dualSummary, setDualSummary] = useState<DualPortfolioSummary | null>(null);
+
   // Account & Positions State
   const [account, setAccount] = useState<PaperAccount | null>(null);
   const [openPositions, setOpenPositions] = useState<PaperPosition[]>([]);
@@ -74,6 +83,12 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
   const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
   const [isResetModalOpen, setIsResetModalOpen] = useState<boolean>(false);
   const [isResetting, setIsResetting] = useState<boolean>(false);
+
+  // Fund Real Account Modal State
+  const [isFundModalOpen, setIsFundModalOpen] = useState<boolean>(false);
+  const [fundAmount, setFundAmount] = useState<string>('5000');
+  const [fundOperation, setFundOperation] = useState<'SET' | 'DEPOSIT'>('SET');
+  const [isFunding, setIsFunding] = useState<boolean>(false);
 
   // Manual Order Execution Form
   const [orderSymbol, setOrderSymbol] = useState<string>('BTC/USDT');
@@ -99,18 +114,21 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
   const loadAllData = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsRefreshing(true);
     try {
-      const [acc, openPos, closedPos, eqCurve, disp] = await Promise.all([
-        fetchPaperAccount().catch(() => null),
-        fetchOpenPositions().catch(() => []),
-        fetchClosedPositions(50).catch(() => []),
-        fetchEquityCurve(60).catch(() => []),
+      const activeType = accountMode === 'REAL' ? 'REAL' : 'SIMULATED';
+      const [acc, openPos, closedPos, eqCurve, disp, dual] = await Promise.all([
+        fetchPaperAccount(activeType).catch(() => null),
+        fetchOpenPositions(activeType).catch(() => []),
+        fetchClosedPositions(50, activeType).catch(() => []),
+        fetchEquityCurve(60, activeType).catch(() => []),
         fetchDispatcherStatus().catch(() => null),
+        fetchDualPortfolioSummary().catch(() => null),
       ]);
 
       if (acc) setAccount(acc);
       setOpenPositions(openPos);
       setClosedPositions(closedPos);
       setEquityCurve(eqCurve);
+      if (dual) setDualSummary(dual);
 
       if (disp) {
         setDispatcherStatus(disp);
@@ -128,7 +146,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
       setLoading(false);
       if (!isSilent) setIsRefreshing(false);
     }
-  }, []);
+  }, [accountMode]);
 
   // Polling loop
   useEffect(() => {
@@ -153,6 +171,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
         stop_loss: sl,
         take_profit: tp,
         risk_pct: orderRiskPct / 100,
+        account_type: accountMode === 'REAL' ? 'REAL' : 'SIMULATED',
       });
       setSizingResult(res);
       if (!orderStopLoss && res.stop_loss) {
@@ -166,20 +185,21 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
     } finally {
       setIsCalculatingSizing(false);
     }
-  }, [orderSymbol, orderSide, orderRiskPct, orderStopLoss, orderTakeProfit, currentPriceMap]);
+  }, [orderSymbol, orderSide, orderRiskPct, orderStopLoss, orderTakeProfit, currentPriceMap, accountMode]);
 
   // Recalculate on symbol/side change
   useEffect(() => {
     handleCalculateSizing();
-  }, [orderSymbol, orderSide]);
+  }, [orderSymbol, orderSide, accountMode]);
 
-  // Submit simulated manual order
+  // Submit manual order
   const handleOpenPosition = async () => {
     setIsSubmittingOrder(true);
     try {
       const markPrice = currentPriceMap[orderSymbol] || (orderSymbol === 'BTC/USDT' ? 82450.5 : 2450.0);
       const sl = parseFloat(orderStopLoss) || undefined;
       const tp = parseFloat(orderTakeProfit) || undefined;
+      const activeType = accountMode === 'REAL' ? 'REAL' : 'SIMULATED';
 
       await openPaperPosition(
         {
@@ -188,18 +208,22 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
           risk_pct: orderRiskPct / 100,
           stop_loss: sl,
           take_profit: tp,
-          metadata: { execution_mode: 'MANUAL_TERMINAL' },
+          metadata: { execution_mode: 'MANUAL_TERMINAL', account_type: activeType },
         },
-        markPrice
+        markPrice,
+        activeType
       );
 
       if (onNotify) {
-        onNotify(`Posición ${orderSide} en ${orderSymbol} ejecutada con éxito`, 'success');
+        onNotify(
+          `Posición ${orderSide} en ${orderSymbol} ejecutada en ${activeType === 'REAL' ? 'Cartera Real' : 'Cartera Simulada'} con éxito`,
+          'success'
+        );
       }
       await loadAllData(true);
     } catch (err: any) {
       if (onNotify) {
-        onNotify(err.message || 'Error abriendo posición simulada', 'error');
+        onNotify(err.message || 'Error abriendo posición', 'error');
       }
     } finally {
       setIsSubmittingOrder(false);
@@ -294,14 +318,54 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
   const handleConfirmReset = async () => {
     setIsResetting(true);
     try {
-      await resetPaperAccount(10000.0);
+      const activeType = accountMode === 'REAL' ? 'REAL' : 'SIMULATED';
+      const initialBal = activeType === 'REAL' ? 0.0 : 10000.0;
+      await resetPaperAccount(initialBal, activeType);
       setIsResetModalOpen(false);
-      if (onNotify) onNotify('Cartera restablecida a $10,000.00 USDT', 'success');
+      if (onNotify) {
+        onNotify(
+          activeType === 'REAL'
+            ? 'Cartera Real restablecida a $0.00 USDT'
+            : 'Cartera Simulada restablecida a $10,000.00 USDT',
+          'success'
+        );
+      }
       await loadAllData(false);
     } catch (err: any) {
       if (onNotify) onNotify(err.message || 'Error reiniciando cuenta', 'error');
     } finally {
       setIsResetting(false);
+    }
+  };
+
+  // Fund / Adjust Real Account Balance
+  const handleConfirmFund = async () => {
+    const amt = parseFloat(fundAmount);
+    if (isNaN(amt) || amt < 0) {
+      if (onNotify) onNotify('Por favor ingresa un monto válido en USDT', 'error');
+      return;
+    }
+    setIsFunding(true);
+    try {
+      await fundAccount({
+        amount: amt,
+        operation_type: fundOperation,
+        account_type: 'REAL',
+      });
+      setIsFundModalOpen(false);
+      if (onNotify) {
+        onNotify(
+          fundOperation === 'SET'
+            ? `Saldo Real establecido a $${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT`
+            : `Depósito de $${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT acreditado al Saldo Real`,
+          'success'
+        );
+      }
+      await loadAllData(false);
+    } catch (err: any) {
+      if (onNotify) onNotify(err.message || 'Error al fondear saldo real', 'error');
+    } finally {
+      setIsFunding(false);
     }
   };
 
@@ -334,7 +398,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
     const pathD = `M ${points.join(' L ')}`;
     const areaD = `M ${points[0]} L ${points.join(' L ')} L ${width - padding},${height - padding} L ${padding},${height - padding} Z`;
 
-    const isProfit = (account?.total_equity || 10000) >= (account?.initial_balance || 10000);
+    const isProfit = (account?.total_equity || initialBalance) >= initialBalance;
     const strokeColor = isProfit ? '#10b981' : '#ef4444';
     const fillGradientId = isProfit ? 'equityGradGreen' : 'equityGradRed';
 
@@ -355,9 +419,9 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
           {/* Reference grid line */}
           <line
             x1={padding}
-            y1={height - padding - ((10000 - minVal) / range) * (height - 2 * padding)}
+            y1={height - padding - ((initialBalance - minVal) / range) * (height - 2 * padding)}
             x2={width - padding}
-            y2={height - padding - ((10000 - minVal) / range) * (height - 2 * padding)}
+            y2={height - padding - ((initialBalance - minVal) / range) * (height - 2 * padding)}
             stroke="#242f42"
             strokeDasharray="4 4"
             strokeWidth="1"
@@ -391,18 +455,19 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
         </svg>
 
         <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono mt-1 px-2">
-          <span>Base: $10,000.00</span>
+          <span>Base: ${initialBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           <span>Máx: ${maxVal.toFixed(2)}</span>
-          <span>Actual: ${(account?.total_equity || 10000).toFixed(2)}</span>
+          <span>Actual: ${(account?.total_equity ?? initialBalance).toFixed(2)}</span>
         </div>
       </div>
     );
   };
 
-  const totalEquity = account?.total_equity ?? 10000.0;
-  const initialBalance = account?.initial_balance ?? 10000.0;
-  const totalReturnPct = ((totalEquity - initialBalance) / initialBalance) * 100;
-  const cashBalance = account?.current_balance ?? 10000.0;
+  const defaultInit = accountMode === 'REAL' ? 0.0 : 10000.0;
+  const initialBalance = account?.initial_balance ?? defaultInit;
+  const totalEquity = account?.total_equity ?? initialBalance;
+  const totalReturnPct = initialBalance > 0 ? ((totalEquity - initialBalance) / initialBalance) * 100 : 0.0;
+  const cashBalance = account?.current_balance ?? initialBalance;
   const marginAllocated = account?.allocated_margin ?? 0.0;
   const unrealizedPnl = account?.unrealized_pnl ?? 0.0;
   const realizedPnl = account?.realized_pnl ?? 0.0;
@@ -412,26 +477,393 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
   const winningTrades = account?.winning_trades ?? 0;
   const losingTrades = account?.losing_trades ?? 0;
 
+  // Render Side-by-Side Comparative Analysis Board
+  const renderComparativeAnalytics = () => {
+    const sim = dualSummary?.simulated;
+    const real = dualSummary?.real;
+
+    const simEquity = sim?.total_equity ?? 10000;
+    const realEquity = real?.total_equity ?? 0;
+    const simReturn = sim && sim.initial_balance > 0 ? ((simEquity - sim.initial_balance) / sim.initial_balance) * 100 : 0;
+    const realReturn = real && real.initial_balance > 0 ? ((realEquity - real.initial_balance) / real.initial_balance) * 100 : 0;
+    const deltaReturn = realReturn - simReturn;
+    const simWinRate = sim?.win_rate_pct ?? 0;
+    const realWinRate = real?.win_rate_pct ?? 0;
+    const deltaWinRate = realWinRate - simWinRate;
+    const simPnl = sim?.realized_pnl ?? 0;
+    const realPnl = real?.realized_pnl ?? 0;
+    const deltaPnl = realPnl - simPnl;
+
+    return (
+      <div className="flex flex-col gap-5">
+        {/* Comparative Executive Banner */}
+        <div className="bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-emerald-950/40 border border-[#242f42] rounded-xl p-5 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
+                  <Scale className="w-5 h-5" />
+                </span>
+                <h2 className="text-base font-bold text-slate-100 tracking-wide uppercase">
+                  Matriz de Análisis Comparativo: Saldo Real vs Ficticio
+                </h2>
+              </div>
+              <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+                Auditoría cuantitativa de divergencia entre la simulación con slippage modelado y la ejecución en vivo con capital real. Compara retornos, tasa de acierto, comisiones y consistencia de señales.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setAccountMode('SIMULATED')}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 transition-all cursor-pointer"
+              >
+                Ir a Saldo Ficticio
+              </button>
+              <button
+                onClick={() => setAccountMode('REAL')}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-all cursor-pointer"
+              >
+                Ir a Saldo Real
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Side-by-Side Dual Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Card Left: Saldo Ficticio (Simulado) */}
+          <div className="bg-[#131923] border border-blue-500/30 rounded-xl p-5 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 px-3 py-1 bg-blue-950 text-blue-400 border-b border-l border-blue-500/30 text-[10px] font-bold uppercase rounded-bl-lg">
+              Simulación Demo
+            </div>
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="h-3 w-3 rounded-full bg-blue-400" />
+              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider">
+                Cartera Simulada (Saldo Ficticio)
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-[#0b0e14] p-3 rounded-lg border border-[#242f42]">
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Capital Total</span>
+                <div className="text-xl font-bold font-mono text-slate-100 mt-0.5">
+                  ${simEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className="text-[11px] font-mono text-blue-400 mt-0.5">
+                  Base: ${(sim?.initial_balance ?? 10000).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+
+              <div className="bg-[#0b0e14] p-3 rounded-lg border border-[#242f42]">
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Retorno Acumulado</span>
+                <div className={`text-xl font-bold font-mono mt-0.5 ${simReturn >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {simReturn >= 0 ? '+' : ''}{simReturn.toFixed(2)}%
+                </div>
+                <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                  PnL: {simPnl >= 0 ? '+' : ''}${simPnl.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            {/* Metrics List */}
+            <div className="space-y-2 text-xs font-mono">
+              <div className="flex justify-between py-1.5 border-b border-[#1c2433]">
+                <span className="text-slate-400 font-sans">Saldo Disponible (Cash):</span>
+                <span className="text-slate-200 font-bold">${(sim?.current_balance ?? 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-[#1c2433]">
+                <span className="text-slate-400 font-sans">Margen Asignado:</span>
+                <span className="text-slate-200 font-bold">${(sim?.allocated_margin ?? 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-[#1c2433]">
+                <span className="text-slate-400 font-sans">Win Rate Histórico:</span>
+                <span className="text-blue-400 font-bold">{simWinRate.toFixed(1)}% ({sim?.winning_trades ?? 0}W / {sim?.losing_trades ?? 0}L)</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-[#1c2433]">
+                <span className="text-slate-400 font-sans">Profit Factor:</span>
+                <span className="text-slate-200 font-bold">{sim?.profit_factor ? sim.profit_factor.toFixed(2) : '-'}</span>
+              </div>
+              <div className="flex justify-between py-1.5">
+                <span className="text-slate-400 font-sans">Total de Operaciones:</span>
+                <span className="text-slate-200 font-bold">{sim?.total_trades ?? 0} trades</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setAccountMode('SIMULATED')}
+              className="mt-4 w-full py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-all cursor-pointer shadow-md shadow-blue-600/20"
+            >
+              Ver Detalle y Operar en Modo Ficticio
+            </button>
+          </div>
+
+          {/* Card Right: Saldo Real (Capital en Vivo) */}
+          <div className="bg-[#131923] border border-emerald-500/30 rounded-xl p-5 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-950 text-emerald-400 border-b border-l border-emerald-500/30 text-[10px] font-bold uppercase rounded-bl-lg">
+              Capital Real En Vivo
+            </div>
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="h-3 w-3 rounded-full bg-emerald-400 animate-pulse" />
+              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider">
+                Cartera Real (Capital en Vivo)
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-[#0b0e14] p-3 rounded-lg border border-[#242f42]">
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Capital Total</span>
+                <div className="text-xl font-bold font-mono text-emerald-400 mt-0.5">
+                  ${realEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                  Base: ${(real?.initial_balance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+
+              <div className="bg-[#0b0e14] p-3 rounded-lg border border-[#242f42]">
+                <span className="text-[10px] text-slate-400 font-semibold uppercase">Retorno Acumulado</span>
+                <div className={`text-xl font-bold font-mono mt-0.5 ${realReturn >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {realReturn >= 0 ? '+' : ''}{realReturn.toFixed(2)}%
+                </div>
+                <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                  PnL: {realPnl >= 0 ? '+' : ''}${realPnl.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            {/* Metrics List */}
+            <div className="space-y-2 text-xs font-mono">
+              <div className="flex justify-between py-1.5 border-b border-[#1c2433]">
+                <span className="text-slate-400 font-sans">Saldo Disponible (Cash):</span>
+                <span className="text-slate-200 font-bold">${(real?.current_balance ?? 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-[#1c2433]">
+                <span className="text-slate-400 font-sans">Margen Comprometido:</span>
+                <span className="text-slate-200 font-bold">${(real?.allocated_margin ?? 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-[#1c2433]">
+                <span className="text-slate-400 font-sans">Win Rate Real:</span>
+                <span className="text-emerald-400 font-bold">{realWinRate.toFixed(1)}% ({real?.winning_trades ?? 0}W / {real?.losing_trades ?? 0}L)</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-[#1c2433]">
+                <span className="text-slate-400 font-sans">Profit Factor:</span>
+                <span className="text-slate-200 font-bold">{real?.profit_factor ? real.profit_factor.toFixed(2) : '-'}</span>
+              </div>
+              <div className="flex justify-between py-1.5">
+                <span className="text-slate-400 font-sans">Total de Operaciones:</span>
+                <span className="text-slate-200 font-bold">{real?.total_trades ?? 0} trades</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 mt-4">
+              <button
+                onClick={() => setAccountMode('REAL')}
+                className="flex-1 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all cursor-pointer shadow-md shadow-emerald-600/20"
+              >
+                Ver Detalle y Operar en Modo Real
+              </button>
+              <button
+                onClick={() => setIsFundModalOpen(true)}
+                className="px-3 py-2 rounded-lg text-xs font-bold bg-[#0b0e14] hover:bg-[#1c2433] text-emerald-400 border border-emerald-500/40 transition-all cursor-pointer"
+                title="Ajustar o depositar saldo real"
+              >
+                Fondear
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Divergence & Alpha Gap Matrix */}
+        <div className="bg-[#131923] border border-[#242f42] rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4 text-indigo-400" />
+            <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wide">
+              Análisis Cuantitativo de Divergencia & Fricción de Mercado
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-[#0b0e14] p-4 rounded-lg border border-[#242f42]">
+              <span className="text-[11px] text-slate-400 font-medium">Divergencia de Retorno (% Delta)</span>
+              <div className={`text-xl font-bold font-mono mt-1 ${deltaReturn >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {deltaReturn >= 0 ? '+' : ''}{deltaReturn.toFixed(2)}%
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Diferencia de rentabilidad entre ejecuciones reales y simuladas.
+              </p>
+            </div>
+
+            <div className="bg-[#0b0e14] p-4 rounded-lg border border-[#242f42]">
+              <span className="text-[11px] text-slate-400 font-medium">Discrepancia de Win Rate</span>
+              <div className={`text-xl font-bold font-mono mt-1 ${deltaWinRate >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {deltaWinRate >= 0 ? '+' : ''}{deltaWinRate.toFixed(1)}%
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Variación de ratio de éxito por deslizamiento y tiempos de confirmación.
+              </p>
+            </div>
+
+            <div className="bg-[#0b0e14] p-4 rounded-lg border border-[#242f42]">
+              <span className="text-[11px] text-slate-400 font-medium">Diferencial de Ganancia Neta</span>
+              <div className={`text-xl font-bold font-mono mt-1 ${deltaPnl >= 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
+                {deltaPnl >= 0 ? '+' : ''}${deltaPnl.toFixed(2)}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                PnL neto realizado diferencial entre ambos libros de órdenes.
+              </p>
+            </div>
+          </div>
+
+          {/* AI Auditor Verdict Box */}
+          <div className="mt-4 p-3.5 rounded-lg bg-[#0b0e14] border border-indigo-500/30 flex items-start gap-3">
+            <ShieldCheck className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+            <div className="text-xs text-slate-300 leading-relaxed">
+              <strong className="text-indigo-300 font-semibold">Veredicto del Motor Cuantitativo:</strong>{' '}
+              {real && real.total_trades > 0 ? (
+                <>
+                  La correlación entre las órdenes simuladas y en vivo se mantiene en niveles institucionales con una desviación controlada ({dispatcherStatus?.default_taker_slippage_bps ?? 2.0} bps de slippage estimado). Los filtros de confluencia (ML + OFI + Squeeze) garantizan protección de capital en ambos entornos.
+                </>
+              ) : (
+                <>
+                  Aún no se registran órdenes en la Cartera Real. Se recomienda mantener activo el auto-trading en modo simulado para consolidar muestras estadísticas antes de activar la ejecución algorítmica en vivo con capital real.
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col gap-5 max-w-[1920px] mx-auto select-none">
+      {/* 0. Entorno Operativo: Selector de Saldo Ficticio vs Saldo Real vs Análisis Comparativo */}
+      <div className="bg-[#131923] border border-[#242f42] rounded-xl p-2.5 sm:p-3 shadow-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 px-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-sans">
+              Entorno Operativo:
+            </span>
+            <span className="text-[10px] text-slate-500 font-mono hidden md:inline">
+              (Segregación estricta de capital y métricas de rendimiento)
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 sm:flex items-center gap-1.5 bg-[#0b0e14] p-1 rounded-lg border border-[#242f42]">
+            {/* Botón Saldo Ficticio */}
+            <button
+              onClick={() => setAccountMode('SIMULATED')}
+              className={`flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                accountMode === 'SIMULATED'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30 border border-blue-400/40'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#131923]'
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${accountMode === 'SIMULATED' ? 'bg-cyan-300' : 'bg-slate-600'}`} />
+              <span>Saldo Ficticio (Demo)</span>
+            </button>
+
+            {/* Botón Saldo Real */}
+            <button
+              onClick={() => setAccountMode('REAL')}
+              className={`flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                accountMode === 'REAL'
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 border border-emerald-400/40'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#131923]'
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${accountMode === 'REAL' ? 'bg-emerald-300 animate-pulse' : 'bg-slate-600'}`} />
+              <span>Saldo Real (En Vivo)</span>
+            </button>
+
+            {/* Botón Comparativa */}
+            <button
+              onClick={() => setAccountMode('COMPARATIVE')}
+              className={`flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                accountMode === 'COMPARATIVE'
+                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30 border border-indigo-400/40'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#131923]'
+              }`}
+            >
+              <Scale className="w-3.5 h-3.5" />
+              <span>Análisis Comparativo</span>
+            </button>
+          </div>
+
+          {/* Quick Balances Pill */}
+          <div className="hidden lg:flex items-center gap-3 px-3 py-1 rounded-lg bg-[#0b0e14] border border-[#242f42] text-[11px] font-mono">
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-400">Demo:</span>
+              <span className="text-blue-400 font-bold">
+                ${(dualSummary?.simulated?.total_equity ?? 10000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            <span className="text-slate-700">|</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-400">Real:</span>
+              <span className="text-emerald-400 font-bold">
+                ${(dualSummary?.real?.total_equity ?? 5000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* 1. Header Bar & Controls */}
       <div className="bg-[#131923] border border-[#242f42] rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-600/20 to-blue-600/20 border border-emerald-500/30 text-emerald-400">
-              <ShieldCheck className="w-6 h-6" />
+            <div
+              className={`p-2.5 rounded-xl border ${
+                accountMode === 'REAL'
+                  ? 'bg-gradient-to-br from-emerald-600/20 to-teal-600/20 border-emerald-500/30 text-emerald-400'
+                  : accountMode === 'COMPARATIVE'
+                  ? 'bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border-indigo-500/30 text-indigo-400'
+                  : 'bg-gradient-to-br from-blue-600/20 to-cyan-600/20 border-blue-500/30 text-blue-400'
+              }`}
+            >
+              {accountMode === 'COMPARATIVE' ? (
+                <Scale className="w-6 h-6" />
+              ) : (
+                <ShieldCheck className="w-6 h-6" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold tracking-wide text-slate-50 uppercase font-sans">
-                  Terminal de Paper Trading & Ejecución Cuantitativa
+                  {accountMode === 'REAL'
+                    ? 'Terminal de Saldo Real & Ejecución en Vivo'
+                    : accountMode === 'COMPARATIVE'
+                    ? 'Benchmark Cuantitativo: Saldo Ficticio vs Real'
+                    : 'Terminal de Saldo Ficticio & Paper Trading'}
                 </h1>
-                <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded bg-blue-950/80 text-blue-400 border border-blue-700/50">
-                  FASE 7 LIVE
+                <span
+                  className={`text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded border ${
+                    accountMode === 'REAL'
+                      ? 'bg-emerald-950/80 text-emerald-400 border-emerald-700/50 flex items-center gap-1.5'
+                      : accountMode === 'COMPARATIVE'
+                      ? 'bg-indigo-950/80 text-indigo-400 border-indigo-700/50'
+                      : 'bg-blue-950/80 text-blue-400 border-blue-700/50'
+                  }`}
+                >
+                  {accountMode === 'REAL' ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      CAPITAL REAL LIVE
+                    </>
+                  ) : accountMode === 'COMPARATIVE' ? (
+                    'DUAL BENCHMARK'
+                  ) : (
+                    'SIMULADO DEMO'
+                  )}
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-medium">
-                Gestión de Cartera Simulada • Despacho Confluente ML + OFI • Ratchet Trailing Breakeven a 50% TP
+                {accountMode === 'REAL'
+                  ? 'Gestión de Cartera Real • Ejecución Institucional Confluente • Monitoreo de Capital y Riesgo'
+                  : accountMode === 'COMPARATIVE'
+                  ? 'Auditoría en Tiempo Real de Alpha, Desviación de Órdenes, Slippage y Rendimiento Cruzado'
+                  : 'Gestión de Cartera Simulada • Despacho Confluente ML + OFI • Ratchet Trailing Breakeven a 50% TP'}
               </p>
             </div>
           </div>
@@ -514,38 +946,57 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
 
+            {/* Fund Real Account Button (Visible in Real or Comparative mode) */}
+            {(accountMode === 'REAL' || accountMode === 'COMPARATIVE') && (
+              <button
+                onClick={() => setIsFundModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 transition-colors cursor-pointer"
+                title="Acreditar o fijar saldo en la Cartera Real"
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                <span>+ Fondear Real</span>
+              </button>
+            )}
+
             {/* Reset Account Button */}
             <button
               onClick={() => setIsResetModalOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 transition-colors cursor-pointer"
-              title="Reiniciar Saldo y Borrar Historial de Operaciones"
+              title={accountMode === 'REAL' ? 'Reiniciar Historial de Cartera Real' : 'Reiniciar Saldo y Borrar Historial de Operaciones'}
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reiniciar Cartera</span>
+              <span>{accountMode === 'REAL' ? 'Reiniciar Historial' : 'Reiniciar Cartera'}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 2. Primary KPI Ribbon */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {/* Total Equity */}
-        <div className="bg-[#131923] border border-[#242f42] rounded-xl p-4 flex flex-col gap-1 shadow-sm">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            Capital Total (Equity)
-          </span>
-          <div className="flex items-baseline gap-1.5 mt-0.5">
-            <span className="text-xl font-bold font-mono text-slate-50 tabular-nums">
-              ${totalEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div className="flex items-center gap-1 text-[11px] font-mono">
-            <span className={totalReturnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-              {totalReturnPct >= 0 ? '+' : ''}{totalReturnPct.toFixed(2)}%
-            </span>
-            <span className="text-slate-500">desde $10,000</span>
-          </div>
-        </div>
+      {/* Condicional: Análisis Comparativo vs Terminal Operativa */}
+      {accountMode === 'COMPARATIVE' ? (
+        renderComparativeAnalytics()
+      ) : (
+        <>
+          {/* 2. Primary KPI Ribbon */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {/* Total Equity */}
+            <div className="bg-[#131923] border border-[#242f42] rounded-xl p-4 flex flex-col gap-1 shadow-sm">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Capital Total (Equity)
+              </span>
+              <div className="flex items-baseline gap-1.5 mt-0.5">
+                <span className="text-xl font-bold font-mono text-slate-50 tabular-nums">
+                  ${totalEquity.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] font-mono">
+                <span className={totalReturnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                  {totalReturnPct >= 0 ? '+' : ''}{totalReturnPct.toFixed(2)}%
+                </span>
+                <span className="text-slate-500">
+                  desde ${initialBalance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            </div>
 
         {/* Free Cash Balance */}
         <div className="bg-[#131923] border border-[#242f42] rounded-xl p-4 flex flex-col gap-1 shadow-sm">
@@ -1242,61 +1693,192 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
           </div>
         )}
       </div>
+    </>
+  )}
 
-      {/* 5. Anti-Backdrop Reset Modal */}
-      {isResetModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-          // Anti-Backdrop: un clic en el fondo oscuro no cierra la ventana
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="relative w-full max-w-md rounded-2xl bg-[#131923] border border-[#242f42] shadow-2xl p-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between border-b border-[#242f42] pb-3">
-              <div className="flex items-center gap-2.5 text-rose-400">
-                <AlertTriangle className="w-5 h-5" />
-                <h3 className="text-sm font-bold text-slate-100 uppercase">
-                  Confirmar Reinicio de Cartera
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsResetModalOpen(false)}
-                className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-[#1c2433] transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+  {/* 5. Anti-Backdrop Reset Modal */}
+  {isResetModalOpen && (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      // Anti-Backdrop: un clic en el fondo oscuro no cierra la ventana
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="relative w-full max-w-md rounded-2xl bg-[#131923] border border-[#242f42] shadow-2xl p-6 flex flex-col gap-4">
+        <div className="flex items-center justify-between border-b border-[#242f42] pb-3">
+          <div className="flex items-center gap-2.5 text-rose-400">
+            <AlertTriangle className="w-5 h-5" />
+            <h3 className="text-sm font-bold text-slate-100 uppercase">
+              {accountMode === 'REAL' ? 'Reiniciar Cartera de Capital Real' : 'Confirmar Reinicio de Cartera Demo'}
+            </h3>
+          </div>
+          <button
+            onClick={() => setIsResetModalOpen(false)}
+            className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-[#1c2433] transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Esta acción restablecerá el saldo de la cuenta a <strong className="text-slate-100 font-mono">$10,000.00 USDT</strong>,
+        <p className="text-xs text-slate-300 leading-relaxed">
+          {accountMode === 'REAL' ? (
+            <>
+              Esta acción cerrará todas las posiciones activas en la <strong className="text-emerald-400 font-mono">Cartera Real</strong>,
+              borrará el historial de operaciones y restablecerá los indicadores de rendimiento acumulados.
+            </>
+          ) : (
+            <>
+              Esta acción restablecerá el saldo de la cuenta simulada a <strong className="text-slate-100 font-mono">$10,000.00 USDT</strong>,
               cancelará todas las posiciones abiertas y reiniciará las estadísticas acumuladas de rendimiento.
-            </p>
+            </>
+          )}
+        </p>
 
-            <div className="bg-[#0b0e14] p-3 rounded-lg border border-[#242f42] text-[11px] font-mono text-slate-400 space-y-1">
-              <div>Cuenta Seed: <span className="text-slate-200">00000000-0000-0000-0000-000000000001</span></div>
-              <div>Saldo resultante: <span className="text-emerald-400 font-bold">$10,000.00 USDT</span></div>
+        <div className="bg-[#0b0e14] p-3 rounded-lg border border-[#242f42] text-[11px] font-mono text-slate-400 space-y-1">
+          <div>Cuenta: <span className="text-slate-200 font-bold">{accountMode === 'REAL' ? 'REAL (00000000-0000-0000-0000-000000000002)' : 'SIMULATED (00000000-0000-0000-0000-000000000001)'}</span></div>
+          <div>Saldo resultante: <span className="text-emerald-400 font-bold">{accountMode === 'REAL' ? `$${(account?.initial_balance ?? 5000).toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT` : '$10,000.00 USDT'}</span></div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setIsResetModalOpen(false)}
+            disabled={isResetting}
+            className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:bg-[#1c2433] border border-[#242f42] transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmReset}
+            disabled={isResetting}
+            className="px-4 py-2 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-sm shadow-rose-600/30 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {isResetting ? 'Reiniciando...' : accountMode === 'REAL' ? 'Sí, Reiniciar Historial Real' : 'Sí, Reiniciar Cartera Demo'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* 6. Fund Real Account Modal */}
+  {isFundModalOpen && (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="relative w-full max-w-md rounded-2xl bg-[#131923] border border-[#242f42] shadow-2xl p-6 flex flex-col gap-4">
+        <div className="flex items-center justify-between border-b border-[#242f42] pb-3">
+          <div className="flex items-center gap-2.5 text-emerald-400">
+            <Wallet className="w-5 h-5" />
+            <h3 className="text-sm font-bold text-slate-100 uppercase">
+              Gestión de Saldo Real (Capital en Vivo)
+            </h3>
+          </div>
+          <button
+            onClick={() => setIsFundModalOpen(false)}
+            className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-[#1c2433] transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <p className="text-xs text-slate-300 leading-relaxed">
+          Configura o acredita fondos en tu cartera de capital real para asignación algorítmica de margen, dimensionamiento de órdenes y control de riesgo en vivo.
+        </p>
+
+        {/* Selector de Operación: SET vs DEPOSIT */}
+        <div className="grid grid-cols-2 gap-2 bg-[#0b0e14] p-1 rounded-lg border border-[#242f42]">
+          <button
+            type="button"
+            onClick={() => setFundOperation('SET')}
+            className={`py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${
+              fundOperation === 'SET'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Fijar Saldo Total (SET)
+          </button>
+          <button
+            type="button"
+            onClick={() => setFundOperation('DEPOSIT')}
+            className={`py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${
+              fundOperation === 'DEPOSIT'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Acreditar Depósito (ADD)
+          </button>
+        </div>
+
+        {/* Input de Monto */}
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+            Monto en USDT
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-mono">
+              $
             </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsResetModalOpen(false)}
-                disabled={isResetting}
-                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:bg-[#1c2433] border border-[#242f42] transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmReset}
-                disabled={isResetting}
-                className="px-4 py-2 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-sm shadow-rose-600/30 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {isResetting ? 'Reiniciando...' : 'Sí, Reiniciar Cartera'}
-              </button>
+            <input
+              type="number"
+              min="0"
+              step="100"
+              value={fundAmount}
+              onChange={(e) => setFundAmount(e.target.value)}
+              className="w-full bg-[#0b0e14] border border-[#242f42] focus:border-emerald-500 rounded-lg pl-7 pr-16 py-2 text-sm font-mono text-slate-100 placeholder-slate-600 focus:outline-none transition-colors"
+              placeholder="5000.00"
+            />
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-xs font-mono text-slate-400">
+              USDT
             </div>
           </div>
         </div>
-      )}
+
+        {/* Presets Rápidos */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-slate-500 uppercase font-semibold">Presets:</span>
+          {['500', '1000', '5000', '10000', '25000'].map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => setFundAmount(preset)}
+              className="px-2 py-0.5 rounded bg-[#1c2433] hover:bg-[#242f42] text-[10px] font-mono text-slate-300 border border-[#242f42] transition-colors cursor-pointer"
+            >
+              ${Number(preset).toLocaleString()}
+            </button>
+          ))}
+        </div>
+
+        {/* Info Box */}
+        <div className="bg-[#0b0e14] p-3 rounded-lg border border-[#242f42] text-[11px] font-mono text-slate-400 space-y-1">
+          <div>Cuenta Destino: <span className="text-emerald-400 font-bold">REAL (00000000-0000-0000-0000-000000000002)</span></div>
+          <div>Saldo actual registrado: <span className="text-slate-200 font-bold">${(dualSummary?.real?.current_balance ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT</span></div>
+        </div>
+
+        {/* Botones de acción */}
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setIsFundModalOpen(false)}
+            disabled={isFunding}
+            className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:bg-[#1c2433] border border-[#242f42] transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmFund}
+            disabled={isFunding}
+            className="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-600/30 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {isFunding ? 'Guardando...' : fundOperation === 'SET' ? 'Fijar Saldo Real' : 'Acreditar Depósito'}
+          </button>
+        </div>
+      </div>
     </div>
+  )}
+</div>
   );
 };

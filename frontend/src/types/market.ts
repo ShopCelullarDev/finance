@@ -241,6 +241,7 @@ export interface BacktestResult {
 export interface PaperAccount {
   id: string;
   name: string;
+  account_type?: 'SIMULATED' | 'REAL';
   initial_balance: number;
   current_balance: number;
   allocated_margin: number;
@@ -338,6 +339,7 @@ export interface GlobalTradingConfig {
 export interface OrderDispatcherStatus {
   is_running: boolean;
   auto_trade_enabled: boolean;
+  trading_mode?: 'SIMULATED' | 'REAL';
   min_confidence: number;
   risk_per_trade_pct: number;
   trade_amount_usd?: number;
@@ -378,6 +380,7 @@ export interface OrderDispatcherStatus {
 
 export interface OrderDispatcherConfig {
   auto_trade_enabled?: boolean;
+  trading_mode?: 'SIMULATED' | 'REAL';
   min_confidence?: number;
   risk_per_trade_pct?: number;
   trade_amount_usd?: number;
@@ -390,6 +393,12 @@ export interface OrderDispatcherConfig {
   avoid_squeeze_regime?: boolean;
   default_taker_slippage_bps?: number;
   allowed_symbols?: string[];
+}
+
+export interface DualPortfolioSummary {
+  simulated: PaperAccount;
+  real: PaperAccount;
+  active_mode: 'SIMULATED' | 'REAL';
 }
 
 

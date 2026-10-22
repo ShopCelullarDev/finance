@@ -1,34 +1,33 @@
 {
   "metadata": {
     "asset_symbol": "BTC/USDT",
-    "ticks_analyzed": 25000,
-    "features_analyzed": 24760,
+    "ticks_analyzed": 15000,
+    "features_analyzed": 14760,
     "initial_capital": 10000.0,
-    "final_equity": 9641.72,
+    "final_equity": 9882.24,
     "taker_fee_bps": 1.4999999999999998,
     "min_ml_confidence": 52.0,
     "max_holding_ticks": 1000,
-    "tested_at": "2026-10-21T21:09:30.543864+00:00"
+    "tested_at": "2026-10-22T12:57:59.629997+00:00"
   },
   "performance_metrics": {
-    "total_trades": 25,
-    "winning_trades": 11,
-    "losing_trades": 14,
-    "win_rate_pct": 44.0,
-    "profit_factor": 0.78,
-    "total_return_pct": -3.58,
-    "net_profit_usd": -358.28,
-    "sharpe_ratio": -0.52,
-    "sortino_ratio": -1.26,
-    "max_drawdown_pct": 6.37,
-    "expectancy_usd": -14.33,
-    "payoff_ratio": 0.99,
-    "avg_win_usd": 113.59,
-    "avg_loss_usd": 114.84,
+    "total_trades": 14,
+    "winning_trades": 7,
+    "losing_trades": 7,
+    "win_rate_pct": 50.0,
+    "profit_factor": 0.83,
+    "total_return_pct": -1.18,
+    "net_profit_usd": -117.76,
+    "sharpe_ratio": -0.33,
+    "sortino_ratio": -0.7,
+    "max_drawdown_pct": 3.05,
+    "expectancy_usd": -8.41,
+    "payoff_ratio": 0.83,
+    "avg_win_usd": 83.81,
+    "avg_loss_usd": 100.63,
     "exit_distribution": {
-      "TIME_LIMIT": 19,
-      "STOP_LOSS": 5,
-      "TAKE_PROFIT": 1
+      "TIME_LIMIT": 13,
+      "STOP_LOSS": 1
     }
   },
   "walk_forward_matrix": [
@@ -36,49 +35,49 @@
       "fold": 1,
       "window": "Fold 1/4",
       "start_time": "2026-10-20 19:11:22.016000+00:00",
-      "end_time": "2026-10-20 20:55:43.016000+00:00",
-      "trades": 6,
-      "win_rate_pct": 66.67,
-      "profit_factor": 1.42,
-      "return_pct": 1.07,
-      "sharpe_ratio": 0.7,
+      "end_time": "2026-10-20 20:13:26.014000+00:00",
+      "trades": 3,
+      "win_rate_pct": 33.33,
+      "profit_factor": 0.69,
+      "return_pct": -0.8,
+      "sharpe_ratio": -0.79,
       "max_drawdown_pct": 1.4
     },
     {
       "fold": 2,
       "window": "Fold 2/4",
-      "start_time": "2026-10-20 20:55:44.016000+00:00",
-      "end_time": "2026-10-20 22:40:17.015000+00:00",
-      "trades": 5,
-      "win_rate_pct": 60.0,
-      "profit_factor": 1.99,
-      "return_pct": 1.23,
-      "sharpe_ratio": 1.26,
-      "max_drawdown_pct": 0.82
+      "start_time": "2026-10-20 20:13:27.016000+00:00",
+      "end_time": "2026-10-20 21:15:44.014000+00:00",
+      "trades": 3,
+      "win_rate_pct": 100.0,
+      "profit_factor": 99.0,
+      "return_pct": 1.64,
+      "sharpe_ratio": 5.89,
+      "max_drawdown_pct": 0.0
     },
     {
       "fold": 3,
       "window": "Fold 3/4",
-      "start_time": "2026-10-20 22:40:18.016000+00:00",
-      "end_time": "2026-10-21 16:05:21.016000+00:00",
-      "trades": 6,
-      "win_rate_pct": 50.0,
-      "profit_factor": 1.07,
-      "return_pct": 0.26,
-      "sharpe_ratio": 0.17,
-      "max_drawdown_pct": 1.75
+      "start_time": "2026-10-20 21:15:45.016000+00:00",
+      "end_time": "2026-10-20 22:18:20.016000+00:00",
+      "trades": 3,
+      "win_rate_pct": 66.67,
+      "profit_factor": 1.33,
+      "return_pct": 0.48,
+      "sharpe_ratio": 0.57,
+      "max_drawdown_pct": 1.43
     },
     {
       "fold": 4,
       "window": "Fold 4/4",
-      "start_time": "2026-10-21 16:05:22.014000+00:00",
-      "end_time": "2026-10-21 17:48:49.016000+00:00",
-      "trades": 7,
-      "win_rate_pct": 42.86,
-      "profit_factor": 0.95,
-      "return_pct": -0.22,
-      "sharpe_ratio": -0.06,
-      "max_drawdown_pct": 4.02
+      "start_time": "2026-10-20 22:18:21.016000+00:00",
+      "end_time": "2026-10-20 23:20:16.017000+00:00",
+      "trades": 3,
+      "win_rate_pct": 33.33,
+      "profit_factor": 0.31,
+      "return_pct": -1.34,
+      "sharpe_ratio": -2.55,
+      "max_drawdown_pct": 1.92
     }
   ],
   "sample_trades": [
@@ -305,22 +304,6 @@
       "exit_reason": "TIME_LIMIT",
       "ticks_held": 1000,
       "equity_after": 9882.24
-    },
-    {
-      "trade_id": 15,
-      "type": "LONG",
-      "entry_time": "2026-10-20T23:10:40.016000",
-      "exit_time": "2026-10-20T23:27:24.016000",
-      "entry_price": 82958.01,
-      "exit_price": 82922.08,
-      "position_size": 82352.03,
-      "stop_loss": 82808.69,
-      "take_profit": 83286.53,
-      "pnl_usd": -60.38,
-      "return_pct": -0.073,
-      "exit_reason": "TIME_LIMIT",
-      "ticks_held": 1000,
-      "equity_after": 9821.86
     }
   ],
   "equity_curve": [
@@ -398,61 +381,6 @@
       "tick_index": 14411,
       "time": "2026-10-20T23:10:23.016000",
       "equity": 9882.24
-    },
-    {
-      "tick_index": 15427,
-      "time": "2026-10-20T23:27:24.016000",
-      "equity": 9821.86
-    },
-    {
-      "tick_index": 16427,
-      "time": "2026-10-20T23:44:04.016000",
-      "equity": 9844.59
-    },
-    {
-      "tick_index": 16872,
-      "time": "2026-10-21T15:32:54.016000",
-      "equity": 10144.84
-    },
-    {
-      "tick_index": 17986,
-      "time": "2026-10-21T15:51:38.016000",
-      "equity": 10297.24
-    },
-    {
-      "tick_index": 18983,
-      "time": "2026-10-21T16:08:15.016000",
-      "equity": 10117.04
-    },
-    {
-      "tick_index": 20020,
-      "time": "2026-10-21T16:25:32.014000",
-      "equity": 10053.96
-    },
-    {
-      "tick_index": 20814,
-      "time": "2026-10-21T16:38:47.016000",
-      "equity": 9878.01
-    },
-    {
-      "tick_index": 21833,
-      "time": "2026-10-21T16:55:56.016000",
-      "equity": 10065.46
-    },
-    {
-      "tick_index": 22788,
-      "time": "2026-10-21T17:11:52.016000",
-      "equity": 9889.31
-    },
-    {
-      "tick_index": 23691,
-      "time": "2026-10-21T17:26:57.014000",
-      "equity": 9716.24
-    },
-    {
-      "tick_index": 24726,
-      "time": "2026-10-21T17:44:14.016000",
-      "equity": 9641.72
     }
   ]
 }

@@ -5,6 +5,7 @@ import {
   SystemTelemetry,
   SignalAction,
   BacktestResult,
+  DualPortfolioSummary,
   PaperAccount,
   PaperPosition,
   PaperEquitySnapshot,
@@ -237,26 +238,53 @@ export async function triggerBacktestRun(params?: {
 // API de Paper Trading & Portfolio Management
 // ----------------------------------------------------------------------------
 
-export async function fetchPaperAccount(): Promise<PaperAccount> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/account`, { cache: 'no-store' });
+export async function fetchPaperAccount(accountType: 'SIMULATED' | 'REAL' = 'SIMULATED'): Promise<PaperAccount> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/account?account_type=${accountType}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Error al obtener cuenta de paper trading: ${res.statusText}`);
   return await res.json();
 }
 
-export async function fetchOpenPositions(): Promise<PaperPosition[]> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/positions/open`, { cache: 'no-store' });
+export async function fetchDualPortfolioSummary(): Promise<DualPortfolioSummary> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/portfolio/dual-summary`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Error al obtener resumen dual de carteras: ${res.statusText}`);
+  return await res.json();
+}
+
+export async function fundAccount(payload: {
+  amount: number;
+  operation_type?: 'SET' | 'DEPOSIT';
+  account_type?: 'SIMULATED' | 'REAL';
+}): Promise<PaperAccount> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/account/fund`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      amount: payload.amount,
+      operation_type: payload.operation_type || 'SET',
+      account_type: payload.account_type || 'REAL',
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Error al fondear cuenta: ${res.statusText}`);
+  }
+  return await res.json();
+}
+
+export async function fetchOpenPositions(accountType: 'SIMULATED' | 'REAL' = 'SIMULATED'): Promise<PaperPosition[]> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/positions/open?account_type=${accountType}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Error al obtener posiciones abiertas: ${res.statusText}`);
   return await res.json();
 }
 
-export async function fetchClosedPositions(limit: number = 50): Promise<PaperPosition[]> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/positions/history?limit=${limit}`, { cache: 'no-store' });
+export async function fetchClosedPositions(limit: number = 50, accountType: 'SIMULATED' | 'REAL' = 'SIMULATED'): Promise<PaperPosition[]> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/positions/history?limit=${limit}&account_type=${accountType}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Error al obtener historial de posiciones: ${res.statusText}`);
   return await res.json();
 }
 
-export async function fetchEquityCurve(limit: number = 100): Promise<PaperEquitySnapshot[]> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/equity-curve?limit=${limit}`, { cache: 'no-store' });
+export async function fetchEquityCurve(limit: number = 100, accountType: 'SIMULATED' | 'REAL' = 'SIMULATED'): Promise<PaperEquitySnapshot[]> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/equity-curve?limit=${limit}&account_type=${accountType}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Error al obtener curva de capital: ${res.statusText}`);
   return await res.json();
 }
@@ -268,8 +296,10 @@ export async function calculatePositionSizing(params: {
   stop_loss?: number;
   take_profit?: number;
   risk_pct?: number;
+  account_type?: 'SIMULATED' | 'REAL';
 }): Promise<PositionSizingResult> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/calculate-sizing`, {
+  const accountType = params.account_type || 'SIMULATED';
+  const res = await fetch(`${getApiBase()}/api/v1/paper/calculate-sizing?account_type=${accountType}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -283,9 +313,12 @@ export async function calculatePositionSizing(params: {
 
 export async function openPaperPosition(
   payload: OpenPositionPayload,
-  price?: number
+  price?: number,
+  accountType: 'SIMULATED' | 'REAL' = 'SIMULATED'
 ): Promise<PaperPosition> {
-  const url = price ? `${getApiBase()}/api/v1/paper/positions/open?price=${price}` : `${getApiBase()}/api/v1/paper/positions/open`;
+  const query = new URLSearchParams({ account_type: accountType });
+  if (price) query.append('price', price.toString());
+  const url = `${getApiBase()}/api/v1/paper/positions/open?${query.toString()}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -318,8 +351,11 @@ export async function closePaperPosition(
   return await res.json();
 }
 
-export async function resetPaperAccount(initialBalance: number = 10000.0): Promise<PaperAccount> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/account/reset?initial_balance=${initialBalance}`, {
+export async function resetPaperAccount(
+  initialBalance: number = 10000.0,
+  accountType: 'SIMULATED' | 'REAL' = 'SIMULATED'
+): Promise<PaperAccount> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/account/reset?initial_balance=${initialBalance}&account_type=${accountType}`, {
     method: 'POST',
   });
   if (!res.ok) {

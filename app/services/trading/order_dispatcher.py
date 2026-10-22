@@ -44,9 +44,11 @@ class OrderDispatcher:
         asset_selection_mode: str = "AUTOMATIC",
         selected_symbol: str = "BTC/USDT",
         compound_interest_enabled: bool = False,
+        trading_mode: str = "SIMULATED",
     ):
         self.portfolio_manager = portfolio_manager or PortfolioManager()
         self.auto_trade_enabled = auto_trade_enabled
+        self.trading_mode = trading_mode
         self.min_confidence = min_confidence
         self.risk_per_trade_pct = risk_per_trade_pct
         self.trade_amount_usd = trade_amount_usd
@@ -229,7 +231,7 @@ class OrderDispatcher:
 
         # 8. Verificación en Base de Datos: Duplicidad y Ejecución
         async with AsyncSessionLocal() as db:
-            account = await self.portfolio_manager.get_or_create_default_account(db)
+            account = await self.portfolio_manager.get_or_create_account_by_type(db, self.trading_mode)
 
             # Comprobar si ya existe una posición abierta para este símbolo
             dup_stmt = select(PaperPosition).where(
@@ -418,6 +420,7 @@ class OrderDispatcher:
         return {
             "is_running": self._is_running,
             "auto_trade_enabled": self.auto_trade_enabled,
+            "trading_mode": self.trading_mode,
             "min_confidence": self.min_confidence,
             "risk_per_trade_pct": self.risk_per_trade_pct,
             "trade_amount_usd": self.trade_amount_usd,
@@ -447,6 +450,7 @@ class OrderDispatcher:
     def update_config(
         self,
         auto_trade_enabled: Optional[bool] = None,
+        trading_mode: Optional[str] = None,
         min_confidence: Optional[float] = None,
         risk_per_trade_pct: Optional[float] = None,
         trade_amount_usd: Optional[float] = None,
@@ -463,6 +467,8 @@ class OrderDispatcher:
         """Actualiza parámetros de control del despachador en tiempo real."""
         if auto_trade_enabled is not None:
             self.auto_trade_enabled = auto_trade_enabled
+        if trading_mode is not None:
+            self.trading_mode = "REAL" if trading_mode.upper() == "REAL" else "SIMULATED"
         if min_confidence is not None:
             self.min_confidence = min_confidence
         if risk_per_trade_pct is not None:

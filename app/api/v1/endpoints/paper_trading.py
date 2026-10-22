@@ -11,6 +11,8 @@ from app.models.market_tick import MarketTick
 from app.models.paper_trading import PaperAccount, PaperEquitySnapshot, PaperPosition
 from app.schemas.paper_trading import (
     ClosePositionRequest,
+    DualPortfolioSummaryResponse,
+    FundAccountRequest,
     OpenPositionRequest,
     PaperAccountResponse,
     PaperEquitySnapshotResponse,
@@ -59,15 +61,55 @@ async def _resolve_latest_price(db: AsyncSession, symbol: str, fallback_price: O
     "/account",
     response_model=PaperAccountResponse,
     status_code=status.HTTP_200_OK,
-    summary="Resumen de Cuenta de Paper Trading",
-    description="Devuelve el balance, margen, PnL flotante, capital total y KPIs consolidados.",
+    summary="Resumen de Cuenta (Ficticia o Real)",
+    description="Devuelve el balance, margen, PnL flotante, capital total y KPIs consolidados para SIMULATED o REAL.",
 )
 async def get_paper_account(
+    account_type: str = Query("SIMULATED", description="Tipo de cuenta: 'SIMULATED' (Ficticio) o 'REAL' (En Vivo)"),
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
-    account = await portfolio_manager.get_or_create_default_account(db)
+    account = await portfolio_manager.get_or_create_account_by_type(db, account_type=account_type)
     summary = await portfolio_manager.get_account_summary(db, account.id)
     return summary
+
+
+@router.get(
+    "/portfolio/dual-summary",
+    response_model=DualPortfolioSummaryResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Resumen Comparativo Dual (Ficticio vs Real)",
+    description="Devuelve el estado consolidado de ambas carteras (Saldo Ficticio y Saldo Real) en una sola llamada.",
+)
+async def get_dual_portfolio_summary(
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    dual = await portfolio_manager.get_dual_summary(db)
+    return {
+        "simulated": dual["simulated"],
+        "real": dual["real"],
+        "active_mode": getattr(order_dispatcher, "trading_mode", "SIMULATED"),
+    }
+
+
+@router.post(
+    "/account/fund",
+    response_model=PaperAccountResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Fondear o Ajustar Saldo de Cuenta",
+    description="Permite fijar o sumar fondos a la cuenta Real o Ficticia.",
+)
+async def fund_account(
+    req: FundAccountRequest,
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    account = await portfolio_manager.get_or_create_account_by_type(db, account_type=req.account_type)
+    await portfolio_manager.update_account_balance(
+        db=db,
+        account_id=account.id,
+        amount=req.amount,
+        operation_type=req.operation_type,
+    )
+    return await portfolio_manager.get_account_summary(db, account.id)
 
 
 @router.get(
@@ -78,9 +120,10 @@ async def get_paper_account(
     description="Devuelve todas las posiciones activas con su PnL flotante y trailing stop.",
 )
 async def list_open_positions(
+    account_type: str = Query("SIMULATED", description="Tipo de cuenta: 'SIMULATED' o 'REAL'"),
     db: AsyncSession = Depends(get_db),
 ) -> List[PaperPosition]:
-    account = await portfolio_manager.get_or_create_default_account(db)
+    account = await portfolio_manager.get_or_create_account_by_type(db, account_type=account_type)
     return await portfolio_manager.get_open_positions(db, account.id)
 
 
@@ -92,10 +135,11 @@ async def list_open_positions(
     description="Devuelve el libro de órdenes y transacciones liquidadas para auditoría.",
 )
 async def list_closed_positions(
+    account_type: str = Query("SIMULATED", description="Tipo de cuenta: 'SIMULATED' o 'REAL'"),
     limit: int = Query(50, ge=1, le=200, description="Cantidad máxima de trades"),
     db: AsyncSession = Depends(get_db),
 ) -> List[PaperPosition]:
-    account = await portfolio_manager.get_or_create_default_account(db)
+    account = await portfolio_manager.get_or_create_account_by_type(db, account_type=account_type)
     return await portfolio_manager.get_closed_positions(db, account.id, limit=limit)
 
 
@@ -107,10 +151,11 @@ async def list_closed_positions(
     description="Recupera la serie temporal de snapshots de capital para renderizar el gráfico.",
 )
 async def get_equity_curve(
+    account_type: str = Query("SIMULATED", description="Tipo de cuenta: 'SIMULATED' o 'REAL'"),
     limit: int = Query(100, ge=10, le=500, description="Puntos de la curva"),
     db: AsyncSession = Depends(get_db),
 ) -> List[PaperEquitySnapshot]:
-    account = await portfolio_manager.get_or_create_default_account(db)
+    account = await portfolio_manager.get_or_create_account_by_type(db, account_type=account_type)
     return await portfolio_manager.get_equity_curve(db, account.id, limit=limit)
 
 
@@ -123,9 +168,10 @@ async def get_equity_curve(
 )
 async def calculate_position_sizing(
     req: PositionSizingCalculationRequest,
+    account_type: str = Query("SIMULATED", description="Tipo de cuenta: 'SIMULATED' o 'REAL'"),
     db: AsyncSession = Depends(get_db),
 ) -> PositionSizingResponse:
-    account = await portfolio_manager.get_or_create_default_account(db)
+    account = await portfolio_manager.get_or_create_account_by_type(db, account_type=account_type)
     return await portfolio_manager.calculate_sizing_for_order(
         db=db,
         account_id=account.id,
@@ -142,15 +188,16 @@ async def calculate_position_sizing(
     "/positions/open",
     response_model=PaperPositionResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Abrir Posición Simulada",
-    description="Ejecuta una orden simulada con dimensionamiento de riesgo institucional y deducción de margen.",
+    summary="Abrir Posición Simulada o Real",
+    description="Ejecuta una orden con dimensionamiento de riesgo institucional y deducción de margen.",
 )
 async def open_simulated_position(
     req: OpenPositionRequest,
+    account_type: str = Query("SIMULATED", description="Tipo de cuenta: 'SIMULATED' o 'REAL'"),
     price: Optional[float] = Query(None, description="Precio de mercado (opcional, si es None se toma el último tick)"),
     db: AsyncSession = Depends(get_db),
 ) -> PaperPosition:
-    account = await portfolio_manager.get_or_create_default_account(db)
+    account = await portfolio_manager.get_or_create_account_by_type(db, account_type=account_type)
     market_price = await _resolve_latest_price(db, req.symbol, fallback_price=price)
 
     try:
@@ -180,7 +227,6 @@ async def close_simulated_position(
     exit_price: Optional[float] = Query(None, description="Precio de salida explícito (opcional)"),
     db: AsyncSession = Depends(get_db),
 ) -> PaperPosition:
-    # Buscar símbolo de la posición para resolver precio de salida si no se provee
     pos_stmt = select(PaperPosition).where(PaperPosition.id == position_id)
     pos_res = await db.execute(pos_stmt)
     pos = pos_res.scalar_one_or_none()
@@ -208,14 +254,15 @@ async def close_simulated_position(
     "/account/reset",
     response_model=PaperAccountResponse,
     status_code=status.HTTP_200_OK,
-    summary="Reiniciar Cuenta de Paper Trading",
-    description="Restaura la cuenta de paper trading a su balance inicial de $10,000 USDT y limpia estadísticas.",
+    summary="Reiniciar Cuenta de Trading",
+    description="Restaura la cuenta al saldo inicial especificado y cancela posiciones abiertas.",
 )
 async def reset_paper_account(
-    initial_balance: float = Query(10000.0, ge=100.0, le=1000000.0, description="Saldo inicial en USDT"),
+    account_type: str = Query("SIMULATED", description="Tipo de cuenta: 'SIMULATED' o 'REAL'"),
+    initial_balance: float = Query(10000.0, ge=0.0, le=1000000.0, description="Saldo inicial en USDT"),
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
-    account = await portfolio_manager.get_or_create_default_account(db)
+    account = await portfolio_manager.get_or_create_account_by_type(db, account_type=account_type)
     await portfolio_manager.reset_account(db, account.id, initial_balance=initial_balance)
     return await portfolio_manager.get_account_summary(db, account.id)
 
@@ -271,6 +318,7 @@ async def update_dispatcher_config(
 ) -> Dict[str, Any]:
     return order_dispatcher.update_config(
         auto_trade_enabled=cfg.auto_trade_enabled,
+        trading_mode=cfg.trading_mode,
         min_confidence=cfg.min_confidence,
         risk_per_trade_pct=cfg.risk_per_trade_pct,
         trade_amount_usd=cfg.trade_amount_usd,

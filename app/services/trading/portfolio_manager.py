@@ -30,17 +30,40 @@ class PortfolioManager:
         self._redis = get_redis_client()
 
     async def get_or_create_default_account(self, db: AsyncSession) -> PaperAccount:
-        """Obtiene o crea la cuenta institucional de Paper Trading por defecto."""
-        stmt = select(PaperAccount).where(PaperAccount.is_active == True).order_by(PaperAccount.created_at.asc())
+        """Obtiene o crea la cuenta institucional de Paper Trading por defecto (Simulada)."""
+        return await self.get_or_create_account_by_type(db, account_type="SIMULATED")
+
+    async def get_or_create_account_by_type(
+        self, db: AsyncSession, account_type: str = "SIMULATED"
+    ) -> PaperAccount:
+        """Obtiene o crea la cuenta institucional según su tipo ('SIMULATED' o 'REAL')."""
+        norm_type = "REAL" if str(account_type).upper() == "REAL" else "SIMULATED"
+        stmt = (
+            select(PaperAccount)
+            .where(PaperAccount.is_active == True, PaperAccount.account_type == norm_type)
+            .order_by(PaperAccount.created_at.asc())
+        )
         result = await db.execute(stmt)
         account = result.scalars().first()
 
         if not account:
+            account_id = (
+                uuid.UUID("00000000-0000-0000-0000-000000000001")
+                if norm_type == "SIMULATED"
+                else uuid.UUID("00000000-0000-0000-0000-000000000002")
+            )
+            name = (
+                "Cartera Simulada (Saldo Ficticio)"
+                if norm_type == "SIMULATED"
+                else "Cartera Real (Saldo en Vivo)"
+            )
+            initial_bal = 10000.0000 if norm_type == "SIMULATED" else 0.0000
             account = PaperAccount(
-                id=uuid.UUID("00000000-0000-0000-0000-000000000001"),
-                name="Cartera Institucional Alpha (Simulada)",
-                initial_balance=10000.0000,
-                current_balance=10000.0000,
+                id=account_id,
+                name=name,
+                account_type=norm_type,
+                initial_balance=initial_bal,
+                current_balance=initial_bal,
                 allocated_margin=0.0000,
                 realized_pnl=0.0000,
             )
@@ -52,8 +75,8 @@ class PortfolioManager:
             snapshot = PaperEquitySnapshot(
                 time=datetime.now(timezone.utc),
                 account_id=account.id,
-                total_equity=10000.0000,
-                cash_balance=10000.0000,
+                total_equity=initial_bal,
+                cash_balance=initial_bal,
                 allocated_margin=0.0000,
                 unrealized_pnl=0.0000,
                 realized_pnl=0.0000,
@@ -106,6 +129,7 @@ class PortfolioManager:
         return {
             "id": account.id,
             "name": account.name,
+            "account_type": account.account_type,
             "initial_balance": float(account.initial_balance),
             "current_balance": current_cash,
             "allocated_margin": total_allocated_margin,
@@ -524,6 +548,70 @@ class PortfolioManager:
             {"account_id": str(account.id), "initial_balance": initial_balance},
         )
         return account
+
+    async def update_account_balance(
+        self,
+        db: AsyncSession,
+        account_id: UUID,
+        amount: float,
+        operation_type: str = "SET",
+    ) -> PaperAccount:
+        """Permite depositar o fijar saldo en una cuenta (ej: Cartera Real)."""
+        account_stmt = select(PaperAccount).where(PaperAccount.id == account_id).with_for_update()
+        res = await db.execute(account_stmt)
+        account = res.scalar_one_or_none()
+        if not account:
+            raise ValueError(f"Cuenta {account_id} no encontrada.")
+
+        amount = float(amount)
+        if operation_type == "SET":
+            account.current_balance = amount
+            if account.total_trades == 0:
+                account.initial_balance = amount
+        elif operation_type == "DEPOSIT":
+            account.current_balance = float(account.current_balance) + amount
+            account.initial_balance = float(account.initial_balance) + amount
+        else:
+            raise ValueError(f"Tipo de operación no soportado: {operation_type}")
+
+        total_allocated_margin = float(account.allocated_margin)
+        snapshot = PaperEquitySnapshot(
+            time=datetime.now(timezone.utc),
+            account_id=account.id,
+            total_equity=float(account.current_balance) + total_allocated_margin,
+            cash_balance=float(account.current_balance),
+            allocated_margin=total_allocated_margin,
+            unrealized_pnl=0.0000,
+            realized_pnl=float(account.realized_pnl),
+            open_positions_count=0,
+        )
+        db.add(snapshot)
+        await db.commit()
+        await db.refresh(account)
+
+        await self._publish_event(
+            "ACCOUNT_FUNDED",
+            {
+                "account_id": str(account.id),
+                "account_type": account.account_type,
+                "current_balance": float(account.current_balance),
+                "operation_type": operation_type,
+            },
+        )
+        return account
+
+    async def get_dual_summary(self, db: AsyncSession) -> Dict[str, Any]:
+        """Obtiene de forma unificada el resumen de Saldo Ficticio y Saldo Real."""
+        sim_acc = await self.get_or_create_account_by_type(db, "SIMULATED")
+        real_acc = await self.get_or_create_account_by_type(db, "REAL")
+
+        sim_summary = await self.get_account_summary(db, sim_acc.id)
+        real_summary = await self.get_account_summary(db, real_acc.id)
+
+        return {
+            "simulated": sim_summary,
+            "real": real_summary,
+        }
 
     async def get_open_positions(self, db: AsyncSession, account_id: UUID) -> List[PaperPosition]:
         """Obtiene todas las posiciones abiertas activas."""

@@ -15,6 +15,7 @@ class PaperAccount(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(String(50), nullable=False, default="Cuenta Principal Paper Trading")
+    account_type = Column(String(20), nullable=False, default="SIMULATED", index=True)  # 'SIMULATED' (Ficticio) o 'REAL' (En Vivo)
     initial_balance = Column(Numeric(18, 4), nullable=False, default=10000.0000)
     current_balance = Column(Numeric(18, 4), nullable=False, default=10000.0000)
     allocated_margin = Column(Numeric(18, 4), nullable=False, default=0.0000)
