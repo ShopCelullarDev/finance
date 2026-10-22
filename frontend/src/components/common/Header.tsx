@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Activity, ShieldCheck, Zap, Radio, Terminal, Database, RefreshCw, LogOut, UserCheck, BarChart3 } from 'lucide-react';
+import { Activity, ShieldCheck, Zap, Radio, Terminal, Database, RefreshCw, LogOut, UserCheck, BarChart3, BookOpen } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface HeaderProps {
@@ -10,6 +10,7 @@ interface HeaderProps {
   connectionStatus: 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR';
   onEvaluateAI: () => void;
   isEvaluating: boolean;
+  onOpenGuide?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   connectionStatus,
   onEvaluateAI,
   isEvaluating,
+  onOpenGuide,
 }) => {
   const { user, logout } = useAuth();
   const getStatusBadge = () => {
@@ -122,6 +124,18 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Controls & System Status */}
         <div className="flex items-center gap-3">
+          {/* Interactive Guide Trigger */}
+          {onOpenGuide && (
+            <button
+              onClick={onOpenGuide}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#131923] hover:bg-[#1c2433] text-slate-200 hover:text-white border border-[#242f42] hover:border-blue-500/50 transition-all cursor-pointer shadow-sm"
+              title="Abrir Guía Interactiva del Sistema y Terminal"
+            >
+              <BookOpen className="h-3.5 w-3.5 text-blue-400" />
+              <span>Guía</span>
+            </button>
+          )}
+
           {/* Quick AI Trigger */}
           <button
             onClick={onEvaluateAI}

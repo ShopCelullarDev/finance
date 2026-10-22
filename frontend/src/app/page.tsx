@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from '@/components/common/Header';
 import { TickerTape } from '@/components/common/TickerTape';
 import { SignalDetailModal } from '@/components/common/SignalDetailModal';
+import { PlatformGuideModal } from '@/components/common/PlatformGuideModal';
 import { TradingViewChart } from '@/components/trading/TradingViewChart';
 import { SignalsFeed } from '@/components/trading/SignalsFeed';
 import { OrderbookWidget } from '@/components/trading/OrderbookWidget';
@@ -24,6 +25,7 @@ export default function Home() {
   const [selectedSymbol, setSelectedSymbol] = useState<string>('BTC/USDT');
   const [timeframe, setTimeframe] = useState<string>('5m');
   const [connectionStatus, setConnectionStatus] = useState<'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'>('CONNECTING');
+  const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
 
   // Market ticks map for tickers
   const [ticks, setTicks] = useState<Record<string, MarketTick>>({
@@ -299,6 +301,7 @@ export default function Home() {
         connectionStatus={connectionStatus}
         onEvaluateAI={handleEvaluateAI}
         isEvaluating={isEvaluatingAI}
+        onOpenGuide={() => setIsGuideOpen(true)}
       />
 
       {/* Live Ticker Tape */}
@@ -386,6 +389,16 @@ export default function Home() {
       <SignalDetailModal
         signal={selectedSignalForModal}
         onClose={() => setSelectedSignalForModal(null)}
+      />
+
+      {/* Interactive Platform Operations Guide Modal */}
+      <PlatformGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        onNavigateTab={(tab) => {
+          setActiveTab(tab);
+          setIsGuideOpen(false);
+        }}
       />
     </div>
   );
