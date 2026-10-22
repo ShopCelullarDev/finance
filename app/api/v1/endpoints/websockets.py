@@ -29,16 +29,36 @@ async def websocket_live_gateway(
     if ticket:
         authenticated_user_id = await AuthService.validate_and_consume_ws_ticket(ticket)
 
-    # 2. Si no hay ticket, validar Access Token JWT
-    if not authenticated_user_id and token:
-        try:
-            payload = decode_token(token)
-            if payload.get("type") == "access":
-                authenticated_user_id = payload.get("sub")
-        except jwt.PyJWTError:
-            authenticated_user_id = None
+    # 2. Si no hay ticket, validar Access Token JWT (Query param o Cookie httpOnly)
+    if not authenticated_user_id:
+        effective_token = token or websocket.cookies.get("access_token")
+        if effective_token:
+            try:
+                payload = decode_token(effective_token)
+                if payload.get("type") == "access":
+                    authenticated_user_id = payload.get("sub")
+            except jwt.PyJWTError:
+                authenticated_user_id = None
 
-    # 3. Rechazar conexión no autorizada con código 4001
+    # 3. Si el Access Token expiró o no está, intentar validar mediante Refresh Token en cookies
+    if not authenticated_user_id:
+        cookie_refresh = websocket.cookies.get("refresh_token")
+        if cookie_refresh:
+            try:
+                payload = decode_token(cookie_refresh)
+                if payload.get("type") == "refresh":
+                    sub = payload.get("sub")
+                    is_valid = await AuthService.verify_refresh_token(sub, cookie_refresh)
+                    if is_valid:
+                        authenticated_user_id = sub
+            except jwt.PyJWTError:
+                authenticated_user_id = None
+
+    # 4. En entorno local / development, permitir fallback a cuenta autorizada si no se especificó credencial
+    if not authenticated_user_id and settings.ENVIRONMENT == "development":
+        authenticated_user_id = "04a9744f-19fe-4a0a-b20d-193d6dda700e"
+
+    # 5. Rechazar conexión no autorizada con código WS 1008
     if not authenticated_user_id:
         await websocket.close(
             code=status.WS_1008_POLICY_VIOLATION,

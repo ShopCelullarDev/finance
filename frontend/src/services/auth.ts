@@ -18,6 +18,9 @@ class AuthService {
   }
 
   getAccessToken(): string | null {
+    if (!this.inMemoryToken && typeof window !== 'undefined') {
+      this.inMemoryToken = localStorage.getItem('market_access_token');
+    }
     return this.inMemoryToken;
   }
 

@@ -221,7 +221,7 @@ export default function Home() {
       unsubSignals();
       unsubNews();
     };
-  }, [loadInitialData]);
+  }, [isAuthenticated, loadInitialData, selectedSymbol]);
 
   // Manejador para cambiar de símbolo activo
   const handleSelectSymbol = (newSymbol: string) => {

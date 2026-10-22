@@ -55,7 +55,10 @@ export class MarketWebSocketClient {
   }
 
   private resolveUrl(): string {
-    const token = typeof window !== 'undefined' ? authService.getAccessToken() : null;
+    let token = authService.getAccessToken();
+    if (!token && typeof window !== 'undefined') {
+      token = localStorage.getItem('market_access_token');
+    }
     const query = token ? `?token=${encodeURIComponent(token)}` : '';
     if (typeof window !== 'undefined') {
       const host = window.location.hostname || '127.0.0.1';
