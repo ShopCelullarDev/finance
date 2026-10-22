@@ -438,6 +438,26 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
 
           {/* Quick Actions & Status Badges */}
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Active Global Trading Profile */}
+            <div
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0b0e14] border border-indigo-500/30 text-xs"
+              title="Configuración global activa para operaciones cuantitativas"
+            >
+              <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+              <div className="flex items-center gap-1.5 text-[11px] font-mono">
+                <span className="text-slate-200 font-bold">${dispatcherStatus?.trade_amount_usd ?? 1000}</span>
+                <span className="text-slate-500">@</span>
+                <span className="text-emerald-400 font-bold">+{dispatcherStatus?.target_profit_pct ?? 5}% TP</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-blue-400 font-semibold">{dispatcherStatus?.asset_selection_mode === 'SPECIFIC' ? dispatcherStatus?.selected_symbol : 'Auto-IA'}</span>
+                {dispatcherStatus?.compound_interest_enabled && (
+                  <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-600/30 font-semibold">
+                    Compuesto
+                  </span>
+                )}
+              </div>
+            </div>
+
             {/* Dispatcher Worker Status */}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0b0e14] border border-[#242f42] text-xs">
               <span className="text-slate-400 font-medium">Worker:</span>

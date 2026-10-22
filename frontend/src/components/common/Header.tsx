@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Activity, ShieldCheck, Zap, Radio, Terminal, Database, RefreshCw, LogOut, UserCheck, BarChart3, BookOpen } from 'lucide-react';
+import { Activity, ShieldCheck, Zap, Radio, Terminal, Database, RefreshCw, LogOut, UserCheck, BarChart3, BookOpen, Sliders } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface HeaderProps {
@@ -11,6 +11,7 @@ interface HeaderProps {
   onEvaluateAI: () => void;
   isEvaluating: boolean;
   onOpenGuide?: () => void;
+  onOpenConfig?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   onEvaluateAI,
   isEvaluating,
   onOpenGuide,
+  onOpenConfig,
 }) => {
   const { user, logout } = useAuth();
 
@@ -145,6 +147,18 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <BookOpen className="h-3.5 w-3.5 text-blue-400" />
               <span>Guía</span>
+            </button>
+          )}
+
+          {/* Global Config Trigger */}
+          {onOpenConfig && (
+            <button
+              onClick={onOpenConfig}
+              className="flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium bg-[#131923] hover:bg-[#1c2433] text-slate-300 hover:text-white border border-[#242f42] hover:border-indigo-500/50 transition-all cursor-pointer shadow-sm"
+              title="Configuración Global de Trading, Monto, Profit & Cripto"
+            >
+              <Sliders className="h-3.5 w-3.5 text-indigo-400" />
+              <span>Config Global</span>
             </button>
           )}
 

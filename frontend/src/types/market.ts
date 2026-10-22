@@ -323,11 +323,30 @@ export interface OpenPositionPayload {
   metadata?: Record<string, unknown>;
 }
 
+export interface GlobalTradingConfig {
+  trade_amount_usd: number;
+  target_profit_pct: number;
+  asset_selection_mode: 'AUTOMATIC' | 'SPECIFIC';
+  selected_symbol: string;
+  compound_interest_enabled: boolean;
+  min_confidence: number;
+  auto_trade_enabled: boolean;
+  require_ofi_confluence: boolean;
+  avoid_squeeze_regime: boolean;
+}
+
 export interface OrderDispatcherStatus {
   is_running: boolean;
   auto_trade_enabled: boolean;
   min_confidence: number;
   risk_per_trade_pct: number;
+  trade_amount_usd?: number;
+  target_profit_pct?: number;
+  asset_selection_mode?: 'AUTOMATIC' | 'SPECIFIC';
+  selected_symbol?: string;
+  compound_interest_enabled?: boolean;
+  accumulated_compound_profit?: number;
+  effective_trade_amount?: number;
   require_ml_agreement: boolean;
   require_ofi_confluence: boolean;
   avoid_squeeze_regime: boolean;
@@ -361,12 +380,18 @@ export interface OrderDispatcherConfig {
   auto_trade_enabled?: boolean;
   min_confidence?: number;
   risk_per_trade_pct?: number;
+  trade_amount_usd?: number;
+  target_profit_pct?: number;
+  asset_selection_mode?: 'AUTOMATIC' | 'SPECIFIC';
+  selected_symbol?: string;
+  compound_interest_enabled?: boolean;
   require_ml_agreement?: boolean;
   require_ofi_confluence?: boolean;
   avoid_squeeze_regime?: boolean;
   default_taker_slippage_bps?: number;
   allowed_symbols?: string[];
 }
+
 
 
 

@@ -5,6 +5,7 @@ import { Header } from '@/components/common/Header';
 import { TickerTape } from '@/components/common/TickerTape';
 import { SignalDetailModal } from '@/components/common/SignalDetailModal';
 import { PlatformGuideModal } from '@/components/common/PlatformGuideModal';
+import { GlobalConfigModal } from '@/components/common/GlobalConfigModal';
 import { TradingViewChart } from '@/components/trading/TradingViewChart';
 import { SignalsFeed } from '@/components/trading/SignalsFeed';
 import { OrderbookWidget } from '@/components/trading/OrderbookWidget';
@@ -14,8 +15,8 @@ import { BacktestDashboard } from '@/components/trading/BacktestDashboard';
 import { PaperTradingDashboard } from '@/components/trading/PaperTradingDashboard';
 import { TelemetryDashboard } from '@/components/admin/TelemetryDashboard';
 import { wsClient } from '@/services/websocket';
-import { fetchSignals, fetchNews, fetchTelemetry, triggerSignalEvaluation, normalizeSignal, normalizeNews } from '@/services/api';
-import { MarketTick, PredictiveSignal, NewsEvent, SystemTelemetry } from '@/types/market';
+import { fetchSignals, fetchNews, fetchTelemetry, triggerSignalEvaluation, normalizeSignal, normalizeNews, fetchDispatcherStatus } from '@/services/api';
+import { MarketTick, PredictiveSignal, NewsEvent, SystemTelemetry, OrderDispatcherStatus } from '@/types/market';
 import { useAuth } from '@/context/AuthContext';
 import { Activity } from 'lucide-react';
 
@@ -26,6 +27,8 @@ export default function Home() {
   const [timeframe, setTimeframe] = useState<string>('5m');
   const [connectionStatus, setConnectionStatus] = useState<'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'>('CONNECTING');
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
+  const [isGlobalConfigOpen, setIsGlobalConfigOpen] = useState<boolean>(false);
+  const [dispatcherStatus, setDispatcherStatus] = useState<OrderDispatcherStatus | null>(null);
 
   // Market ticks map for tickers
   const [ticks, setTicks] = useState<Record<string, MarketTick>>({
@@ -132,11 +135,16 @@ export default function Home() {
   // Cargar datos iniciales desde FastAPI
   const loadInitialData = useCallback(async () => {
     try {
-      const [signalsData, newsData, telemetryData] = await Promise.all([
+      const [signalsData, newsData, telemetryData, dispData] = await Promise.all([
         fetchSignals(15),
         fetchNews(10),
         fetchTelemetry(),
+        fetchDispatcherStatus().catch(() => null),
       ]);
+
+      if (dispData) {
+        setDispatcherStatus(dispData);
+      }
 
       if (signalsData && signalsData.length > 0) {
         setSignals((prev) => {
@@ -302,6 +310,7 @@ export default function Home() {
         onEvaluateAI={handleEvaluateAI}
         isEvaluating={isEvaluatingAI}
         onOpenGuide={() => setIsGuideOpen(true)}
+        onOpenConfig={() => setIsGlobalConfigOpen(true)}
       />
 
       {/* Live Ticker Tape */}
@@ -399,6 +408,14 @@ export default function Home() {
           setActiveTab(tab);
           setIsGuideOpen(false);
         }}
+      />
+
+      {/* Global Trading, Profit & Compound Interest Modal */}
+      <GlobalConfigModal
+        isOpen={isGlobalConfigOpen}
+        onClose={() => setIsGlobalConfigOpen(false)}
+        dispatcherStatus={dispatcherStatus}
+        onConfigUpdated={(updated) => setDispatcherStatus(updated)}
       />
     </div>
   );

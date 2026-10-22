@@ -39,11 +39,22 @@ class OrderDispatcher:
         require_ofi_confluence: bool = True,
         avoid_squeeze_regime: bool = True,
         default_taker_slippage_bps: float = 1.5,
+        trade_amount_usd: float = 1000.0,
+        target_profit_pct: float = 5.0,
+        asset_selection_mode: str = "AUTOMATIC",
+        selected_symbol: str = "BTC/USDT",
+        compound_interest_enabled: bool = False,
     ):
         self.portfolio_manager = portfolio_manager or PortfolioManager()
         self.auto_trade_enabled = auto_trade_enabled
         self.min_confidence = min_confidence
         self.risk_per_trade_pct = risk_per_trade_pct
+        self.trade_amount_usd = trade_amount_usd
+        self.target_profit_pct = target_profit_pct
+        self.asset_selection_mode = asset_selection_mode
+        self.selected_symbol = selected_symbol
+        self.compound_interest_enabled = compound_interest_enabled
+        self.accumulated_compound_profit = 0.0
         self.require_ml_agreement = require_ml_agreement
         self.require_ofi_confluence = require_ofi_confluence
         self.avoid_squeeze_regime = avoid_squeeze_regime
@@ -166,8 +177,12 @@ class OrderDispatcher:
             self._record_filter(symbol, action, confidence, "HOLD_ACTION_IGNORED")
             return
 
-        # 3. Filtro: Símbolo Permitido
-        if self.allowed_symbols and symbol not in self.allowed_symbols:
+        # 3. Filtro: Selección de Criptomoneda (Automática por IA vs Específica)
+        if self.asset_selection_mode == "SPECIFIC" and self.selected_symbol:
+            if symbol != self.selected_symbol:
+                self._record_filter(symbol, action, confidence, f"ASSET_SELECTION_SPECIFIC (Operando solo {self.selected_symbol})")
+                return
+        elif self.allowed_symbols and symbol not in self.allowed_symbols:
             self._record_filter(symbol, action, confidence, f"SYMBOL_NOT_ALLOWED ({symbol})")
             return
 
@@ -232,17 +247,45 @@ class OrderDispatcher:
             slippage_factor = 1.0 + (self.default_taker_slippage_bps / 10000.0) if is_long else 1.0 - (self.default_taker_slippage_bps / 10000.0)
             executed_price = entry_price * slippage_factor
 
+            # Dimensionamiento con Monto Asignado e Interés Compuesto
+            explicit_size = None
+            if self.trade_amount_usd and self.trade_amount_usd > 0:
+                base_trade_amount = self.trade_amount_usd
+                if self.compound_interest_enabled:
+                    effective_trade_amount = base_trade_amount + max(0.0, self.accumulated_compound_profit)
+                else:
+                    effective_trade_amount = base_trade_amount
+                explicit_size = round(effective_trade_amount / max(1e-6, executed_price), 8)
+
+            # Cálculo de Take Profit y Stop Loss basados en el % de profit objetivo
+            final_take_profit = float(take_profit) if take_profit else None
+            final_stop_loss = float(stop_loss) if stop_loss else None
+            if self.target_profit_pct and self.target_profit_pct > 0:
+                profit_margin = self.target_profit_pct / 100.0
+                if is_long:
+                    final_take_profit = executed_price * (1.0 + profit_margin)
+                    final_stop_loss = executed_price * (1.0 - (profit_margin / 2.0))
+                else:
+                    final_take_profit = executed_price * (1.0 - profit_margin)
+                    final_stop_loss = executed_price * (1.0 + (profit_margin / 2.0))
+
             open_req = OpenPositionRequest(
                 symbol=symbol,
                 side=target_side,
                 risk_pct=self.risk_per_trade_pct,
-                stop_loss=float(stop_loss) if stop_loss else None,
-                take_profit=float(take_profit) if take_profit else None,
+                explicit_size=explicit_size,
+                stop_loss=final_stop_loss,
+                take_profit=final_take_profit,
                 signal_id=signal.get("id"),
                 metadata={
                     "source": "auto_order_dispatcher",
                     "signal_action": action,
                     "confidence_score": confidence,
+                    "asset_selection_mode": self.asset_selection_mode,
+                    "compound_interest_active": self.compound_interest_enabled,
+                    "compound_profit_applied": self.accumulated_compound_profit if self.compound_interest_enabled else 0.0,
+                    "trade_amount_usd": self.trade_amount_usd,
+                    "target_profit_pct": self.target_profit_pct,
                     "ml_predicted_class": trigger_factors.get("ml_supervised", {}).get("predicted_class"),
                     "ofi_score": trigger_factors.get("order_flow", {}).get("ofi_score"),
                     "regime": trigger_factors.get("regime_detection", {}).get("regime"),
@@ -313,6 +356,14 @@ class OrderDispatcher:
                 for p in closed_or_updated:
                     if p.status == "CLOSED":
                         logger.info(f"[MONITOR EN VIVO] Posición cerrada automáticamente: {p.symbol} {p.side} por {p.close_reason}")
+                        # Interés compuesto: Si la posición cerró en ganancia, acumular profit para el siguiente trade
+                        if self.compound_interest_enabled and p.realized_pnl and float(p.realized_pnl) > 0:
+                            self.accumulated_compound_profit += float(p.realized_pnl)
+                            logger.info(
+                                f"[INTERÉS COMPUESTO] Profit de +${float(p.realized_pnl):.2f} capitalizado. "
+                                f"Ganancia compuesta acumulada: ${self.accumulated_compound_profit:.2f}. "
+                                f"Siguiente operación utilizará base de ${self.trade_amount_usd + self.accumulated_compound_profit:.2f}"
+                            )
                         # Re-sincronizar símbolos activos
                         await self._sync_active_symbols()
                         break
@@ -360,11 +411,22 @@ class OrderDispatcher:
 
     def get_status(self) -> Dict[str, Any]:
         """Devuelve el estado de telemetría y configuración del despachador."""
+        effective_trade_amount = (
+            self.trade_amount_usd + (self.accumulated_compound_profit if self.compound_interest_enabled else 0.0)
+            if self.trade_amount_usd else None
+        )
         return {
             "is_running": self._is_running,
             "auto_trade_enabled": self.auto_trade_enabled,
             "min_confidence": self.min_confidence,
             "risk_per_trade_pct": self.risk_per_trade_pct,
+            "trade_amount_usd": self.trade_amount_usd,
+            "target_profit_pct": self.target_profit_pct,
+            "asset_selection_mode": self.asset_selection_mode,
+            "selected_symbol": self.selected_symbol,
+            "compound_interest_enabled": self.compound_interest_enabled,
+            "accumulated_compound_profit": round(self.accumulated_compound_profit, 2),
+            "effective_trade_amount": round(effective_trade_amount, 2) if effective_trade_amount else None,
             "require_ml_agreement": self.require_ml_agreement,
             "require_ofi_confluence": self.require_ofi_confluence,
             "avoid_squeeze_regime": self.avoid_squeeze_regime,
@@ -387,6 +449,11 @@ class OrderDispatcher:
         auto_trade_enabled: Optional[bool] = None,
         min_confidence: Optional[float] = None,
         risk_per_trade_pct: Optional[float] = None,
+        trade_amount_usd: Optional[float] = None,
+        target_profit_pct: Optional[float] = None,
+        asset_selection_mode: Optional[str] = None,
+        selected_symbol: Optional[str] = None,
+        compound_interest_enabled: Optional[bool] = None,
         require_ml_agreement: Optional[bool] = None,
         require_ofi_confluence: Optional[bool] = None,
         avoid_squeeze_regime: Optional[bool] = None,
@@ -400,6 +467,16 @@ class OrderDispatcher:
             self.min_confidence = min_confidence
         if risk_per_trade_pct is not None:
             self.risk_per_trade_pct = risk_per_trade_pct
+        if trade_amount_usd is not None:
+            self.trade_amount_usd = trade_amount_usd
+        if target_profit_pct is not None:
+            self.target_profit_pct = target_profit_pct
+        if asset_selection_mode is not None:
+            self.asset_selection_mode = asset_selection_mode
+        if selected_symbol is not None:
+            self.selected_symbol = selected_symbol
+        if compound_interest_enabled is not None:
+            self.compound_interest_enabled = compound_interest_enabled
         if require_ml_agreement is not None:
             self.require_ml_agreement = require_ml_agreement
         if require_ofi_confluence is not None:
