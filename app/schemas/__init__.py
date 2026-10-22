@@ -17,6 +17,16 @@ from app.schemas.user import (
     UserUpdate,
     WSTicketResponse,
 )
+from app.schemas.paper_trading import (
+    PaperAccountResponse,
+    PaperPositionResponse,
+    PaperEquitySnapshotResponse,
+    OpenPositionRequest,
+    ClosePositionRequest,
+    PositionSizingCalculationRequest,
+    PositionSizingResponse,
+    OrderDispatcherConfigRequest,
+)
 
 __all__ = [
     "AssetBase",
@@ -41,4 +51,14 @@ __all__ = [
     "UserResponse",
     "UserUpdate",
     "WSTicketResponse",
+    "PaperAccountResponse",
+    "PaperPositionResponse",
+    "PaperEquitySnapshotResponse",
+    "OpenPositionRequest",
+    "ClosePositionRequest",
+    "PositionSizingCalculationRequest",
+    "PositionSizingResponse",
+    "OrderDispatcherConfigRequest",
 ]
+
+

@@ -234,3 +234,139 @@ export interface BacktestResult {
   sample_trades: SampleTrade[];
 }
 
+// ----------------------------------------------------------------------------
+// Tipos de Paper Trading & Gestión de Cartera Simulada
+// ----------------------------------------------------------------------------
+
+export interface PaperAccount {
+  id: string;
+  name: string;
+  initial_balance: number;
+  current_balance: number;
+  allocated_margin: number;
+  unrealized_pnl: number;
+  total_equity: number;
+  realized_pnl: number;
+  total_trades: number;
+  winning_trades: number;
+  losing_trades: number;
+  win_rate_pct: number;
+  profit_factor: number;
+  open_positions_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaperPosition {
+  id: string;
+  account_id: string;
+  asset_id: number;
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  status: 'OPEN' | 'CLOSED' | 'CANCELLED';
+  size: number;
+  entry_price: number;
+  current_price: number;
+  exit_price?: number;
+  stop_loss?: number;
+  take_profit?: number;
+  trailing_stop_active: boolean;
+  trailing_stop_price?: number;
+  margin_used: number;
+  unrealized_pnl: number;
+  realized_pnl: number;
+  return_pct: number;
+  entry_fee: number;
+  exit_fee: number;
+  slippage_incurred: number;
+  opened_at: string;
+  closed_at?: string;
+  close_reason?: string;
+  signal_id?: number;
+  extra_metadata?: Record<string, unknown>;
+}
+
+export interface PaperEquitySnapshot {
+  time: string;
+  total_equity: number;
+  cash_balance: number;
+  allocated_margin: number;
+  unrealized_pnl: number;
+  realized_pnl: number;
+  open_positions_count: number;
+}
+
+export interface PositionSizingResult {
+  symbol: string;
+  side: string;
+  entry_price: number;
+  stop_loss: number;
+  take_profit: number;
+  recommended_size: number;
+  required_margin: number;
+  risk_amount_usdt: number;
+  risk_pct: number;
+  reward_risk_ratio: number;
+  estimated_entry_fee: number;
+  is_affordable: boolean;
+  notes: string;
+}
+
+export interface OpenPositionPayload {
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  risk_pct?: number;
+  stop_loss?: number;
+  take_profit?: number;
+  explicit_size?: number;
+  signal_id?: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface OrderDispatcherStatus {
+  is_running: boolean;
+  auto_trade_enabled: boolean;
+  min_confidence: number;
+  risk_per_trade_pct: number;
+  require_ml_agreement: boolean;
+  require_ofi_confluence: boolean;
+  avoid_squeeze_regime: boolean;
+  default_taker_slippage_bps: number;
+  allowed_symbols?: string[];
+  active_monitored_symbols: string[];
+  telemetry: {
+    signals_received: number;
+    signals_filtered: number;
+    orders_dispatched: number;
+    orders_failed: number;
+    ticks_processed: number;
+    last_dispatched_at?: string;
+  };
+  recent_activity: Array<{
+    type: string;
+    status?: string;
+    timestamp: string;
+    symbol: string;
+    action?: string;
+    side?: string;
+    confidence: number;
+    reason?: string;
+    price?: number;
+    size?: number;
+    notes?: string;
+  }>;
+}
+
+export interface OrderDispatcherConfig {
+  auto_trade_enabled?: boolean;
+  min_confidence?: number;
+  risk_per_trade_pct?: number;
+  require_ml_agreement?: boolean;
+  require_ofi_confluence?: boolean;
+  avoid_squeeze_regime?: boolean;
+  default_taker_slippage_bps?: number;
+  allowed_symbols?: string[];
+}
+
+
+

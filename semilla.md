@@ -1,62 +1,66 @@
 # SEMILLA VIVA DE ESTADO (CHECKPOINT SEED)
 
-- **FECHA_HORA:** 2026-10-21T17:15:00-04:00
+- **FECHA_HORA:** 2026-10-22T08:00:00-04:00
 - **AGENTE_MODELO:** Gemini 3.8 Flash (High) / Antigravity AI Orchestrator
-- **ROL_ACTIVO:** quantitative-ai-nlp-agent & frontend-terminal-agent
-- **FASE_ACTUAL:** Fase 6 - Optimización Cuantitativa y Machine Learning del Motor Predictivo
-- **ID_TAREA_ACTUAL:** 6.4 / Fase 6D (Backtesting Vectorizado, Walk-Forward Performance Matrix y Realismo de Ejecución)
+- **ROL_ACTIVO:** backend-fastapi-agent, quant-nlp-agent & frontend-terminal-agent
+- **FASE_ACTUAL:** Fase 7 - Paper Trading en Vivo & Simulated Order Execution Manager
+- **ID_TAREA_ACTUAL:** Fase 7 Completa (7.1, 7.2, 7.3, 7.4)
 - **ESTADO_TAREA:** COMPLETADO_VERIFICADO
 - **ARCHIVO_CANONICO_ESTADO:** [PROJECT_STATE.md](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/PROJECT_STATE.md) & [checkpoint.json](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/checkpoint.json)
 
 ---
 
 ## 1. ULTIMA ACCION COMPLETADA
-- **Optimización Cuantitativa Fase 6D Implementada y Validada (Full Stack):**
-  - **Motor de Backtesting Vectorizado (`app/services/ai/backtester.py`):**
-    - Simulación cronológica realista con deducción de comisiones taker (1.5 a 4.0 bps), deslizamiento (slippage) del bid-ask spread y stops dinámicos ATR ($1.0 \times \text{ATR}$ SL, $1.2 \times \text{ATR}$ TP).
-    - Trailing stop automático a breakeven (+ comisiones) al alcanzar el 50% de la distancia al objetivo, neutralizando pérdidas por reversión intradía.
-    - Demostración empírica de la microestructura: En ticks de alta frecuencia (~4.3s), el horizonte óptimo de retención es $H \ge 1,000$ ticks (~70 mins) para que la oscilación de precio (0.3% - 0.8%) supere las comisiones.
-  - **Matriz Walk-Forward por Folds Cronológicos:**
-    - Fold 1/4: Retorno +1.07%, Win Rate 66.7%, Profit Factor 1.42, Sharpe 0.70.
-    - Fold 2/4: Retorno +1.23%, Win Rate 60.0%, Profit Factor 1.99, Sharpe 1.26.
-    - Fold 3/4: Retorno +0.26%, Win Rate 50.0%, Profit Factor 1.07, Sharpe 0.17.
-    - Fold 4/4: Retorno -0.22%, Win Rate 42.9%, Profit Factor 0.95.
-    - Control de riesgo global: Max Drawdown contenido estrictamente en 6.37%.
-  - **Endpoints FastAPI (`app/api/v1/endpoints/backtest.py`):**
-    - `GET /api/v1/backtest/latest`: Devuelve la matriz Walk-Forward, métricas, curva de equity y registro de trades.
-    - `POST /api/v1/backtest/run`: Permite disparar simulaciones con parámetros ajustables (confianza ML, comisiones taker, ticks analizados, horizonte).
-  - **Interfaz de Usuario Frontend (`BacktestDashboard.tsx`):**
-    - Pestaña de primer nivel "Matriz Backtesting" en el Header institucional.
-    - Ribbon de KPIs (Capital Final, Profit Factor, Win Rate, Sharpe, Max DD, Total Trades).
-    - Tabla comparativa de los 4 Folds Walk-Forward con badges de rentabilidad.
-    - Gráfico y barras de distribución de salidas (Límite de tiempo, Stop Loss ATR, Take Profit).
-    - Libro de auditoría de trades simulados con PnL ($ y %) y causa de salida.
-    - Barra de ejecución interactiva para lanzar nuevas simulaciones en vivo.
-  - **Verificación:** `npm run build` en Next.js completado al 100% (0 errores TypeScript). Endpoints FastAPI activos y respondiendo en 200 OK.
+- **Fase 7: Paper Trading en Vivo & Simulated Order Execution Manager (100% Completada & Verificada):**
+  - **7.1 (Cartera Simulada & Dimensionamiento ATR):**
+    - DDL TimescaleDB: tablas `paper_accounts` ($10,000 USDT seed), `paper_positions` e hipertabla `paper_equity_snapshots` (chunks 7d).
+    - `PositionSizer`: riesgo fijo 1%, ATR distance al SL, 25% max margin cap y comisiones taker (1.5 bps).
+    - `PortfolioManager`: apertura, cierre, marcado a mercado y trailing stop dinámico a Breakeven al 50% de camino a TP.
+  - **7.2 (Order Dispatcher con Confluencia Cuantitativa):**
+    - Worker en segundo plano suscrito a Redis `signals:stream` integrado en lifespan startup/shutdown de FastAPI.
+    - Filtros de confluencia: confianza ML $\ge 55\%$, consenso direccional ML vs Reglas, confluencia OFI L2 ($> -0.20$), exclusión de régimen squeeze y prevención de duplicados.
+    - Ejecución con slippage realista (1.5 bps) y telemetría en tiempo real.
+  - **7.3 (Monitoreo Tick a Tick & Trailing Stop Ratchet en Vivo):**
+    - Escucha continua de `ticks:stream` con mapeo $O(1)$ de símbolos con posiciones abiertas.
+    - Ratchet a Breakeven (+ comisiones) al alcanzar el 50% de distancia al TP.
+    - Auto-liquidación por Take Profit, Stop Loss o Trailing Stop con liberación de margen.
+  - **7.4 (Terminal UI en Next.js):**
+    - Componente `PaperTradingDashboard.tsx` con ribbon de KPIs, controles de confluencia y auto-trading, calculadora de dimensionamiento, feed de despacho, tablas de posiciones abiertas/cerradas, gráfico SVG de curva de capital y modal anti-backdrop de reseteo.
+    - Pestaña "Paper Trading" integrada en `Header.tsx` y vista condicional en `app/page.tsx`.
+  - **Verificación Completa:**
+    - `scripts/test_paper_trading.py` (100% OK).
+    - `scripts/test_order_dispatcher.py` (100% OK).
+    - `npm run build` en Next.js (100% OK, 0 errores TypeScript/ESLint).
 
 ---
 
 ## 2. ARCHIVOS MODIFICADOS RECIENTEMENTE
-- `app/services/ai/backtester.py` (VectorizedBacktester y simulación Walk-Forward)
-- `app/api/v1/endpoints/backtest.py` (Endpoints GET y POST de backtesting)
-- `app/api/v1/router.py` (Registro de router `/backtest`)
-- `scripts/run_backtest.py` (Script CLI de ejecución y exportación)
-- `app/services/ai/models/backtest_results.json` (Resultados de simulación)
-- `frontend/src/types/market.ts` (Tipos TypeScript de Backtesting y Walk-Forward)
-- `frontend/src/services/api.ts` (Funciones de API `fetchLatestBacktest` y `triggerBacktestRun`)
-- `frontend/src/components/trading/BacktestDashboard.tsx` (Componente UI de la Matriz)
-- `frontend/src/components/common/Header.tsx` (Pestaña "Matriz Backtesting")
-- `frontend/src/app/page.tsx` (Integración de pestaña y renderizado condicional)
-- `PROJECT_STATE.md`, `checkpoint.json`, `semilla.md`, `bitacora.md`
+- `database/init/05_paper_trading.sql`
+- `app/models/paper_trading.py`, `app/models/__init__.py`
+- `app/schemas/paper_trading.py`, `app/schemas/__init__.py`
+- `app/services/trading/position_sizer.py`
+- `app/services/trading/portfolio_manager.py`
+- `app/services/trading/order_dispatcher.py`
+- `app/api/v1/endpoints/paper_trading.py`
+- `app/api/v1/router.py`
+- `app/main.py`
+- `scripts/test_paper_trading.py`
+- `scripts/test_order_dispatcher.py`
+- `frontend/src/types/market.ts`
+- `frontend/src/services/api.ts`
+- `frontend/src/components/trading/PaperTradingDashboard.tsx`
+- `frontend/src/components/common/Header.tsx`
+- `frontend/src/app/page.tsx`
+- `pendiente.md`, `bitacora.md`, `semilla.md`, `checkpoint.json`, `PROJECT_STATE.md`
 
 ---
 
 ## 3. COMANDO DE VERIFICACION RAPIDA
 ```bash
-cd frontend && npm run build && cd .. && curl -s http://127.0.0.1:8000/api/v1/backtest/latest | head -n 5
+PYTHONPATH=. .venv/bin/python3 scripts/test_paper_trading.py && PYTHONPATH=. .venv/bin/python3 scripts/test_order_dispatcher.py && cd frontend && npm run build
 ```
 
 ---
 
 ## 4. INSTRUCCION DE REANUDACION PARA EL PROXIMO AGENTE
-> **INSTRUCCION_DIRECTA:** La Fase 6D está completamente integrada y verificada (Backend y Frontend). Proceder a realizar git commit y push a GitHub con el token de `GitHub`. Luego avanzar hacia la **Fase 7: Paper Trading / Simulated Order Execution Manager**.
+> **INSTRUCCION_DIRECTA:** La Fase 7 (Paper Trading y Auto-Ejecución) está completamente terminada y testeada. El sistema está listo para despliegue y monitoreo en vivo. Consolidar commits en Git y preparar el informe final.

@@ -4,27 +4,27 @@
 ---
 
 ## 1. METADATOS DE SINCRONIZACION
-- **FECHA_HORA_ACTUALIZACION:** 2026-10-21T17:15:00-04:00
+- **FECHA_HORA_ACTUALIZACION:** 2026-10-22T08:00:00-04:00
 - **MODELO_ACTIVO:** Gemini 3.8 Flash (High) / Antigravity AI Orchestrator
 - **RAMA_GIT:** `main`
-- **ESTADO_REPOSITORIO:** Fases 1 a 6D Completadas y Verificadas al 100% (Backend y Frontend)
+- **ESTADO_REPOSITORIO:** Fases 1 a 7 Completadas y Verificadas al 100% (Backend, DDL TimescaleDB, Workers Redis y Frontend Next.js)
 
 ---
 
 ## 2. PIVOTE ARQUITECTONICO & FASE ACTIVA
-- **DIRECTIVA_ACTIVA:** Pivote a Arquitectura 100% Privada y Blindada contra Fallos + Optimización Cuantitativa de IA
+- **DIRECTIVA_ACTIVA:** Pivote a Arquitectura 100% Privada y Blindada contra Fallos + Optimización Cuantitativa de IA + Paper Trading
 - **ESTADO_PRIVACIDAD:** 
   - 🔒 **Zero Crawler Leak:** `robots.ts` (`Disallow: /`), cabeceras HTTP `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet, noimageindex, nocache` en Next.js y FastAPI, meta tag robots en `layout.tsx`.
   - 🛡️ **Gate de Autenticación Mandatorio:** Terminal protegida por pantalla de Login institucional (`/login`), Next.js Middleware Edge interceptando accesos no autenticados, y FastAPI dependencias `get_current_user`.
   - 🔑 **Criptografía & Sesiones:** Hashing con SHA-256 + Bcrypt (12 rondas), JWT Access Token (15m) + Refresh Token (7d) con whitelist y revocación en Redis, y tickets de un solo uso para WebSockets.
   - ⏱️ **Rate Limiting:** Ventana deslizante en Redis sobre `/api/v1/auth/login` (máx. 5 intentos, bloqueo temporal por IP/identificador).
-- **FASE_ACTUAL:** Fase 6 - Optimización Cuantitativa y Machine Learning del Motor Predictivo
-- **ID_SUBTAREA_ACTUAL:** Fase 6D - Backtesting Vectorizado, Walk-Forward Performance Matrix y Realismo de Ejecución
+- **FASE_ACTUAL:** Fase 7 - Paper Trading en Vivo & Simulated Order Execution Manager
+- **ID_SUBTAREA_ACTUAL:** Fase 7 Completa (7.1, 7.2, 7.3, 7.4)
 - **ESTADO_SUBTAREA:** COMPLETADO_VERIFICADO
 
 ---
 
-## 3. HISTORIAL DE HITOS COMPLETADOS (FASES 1 - 6D)
+## 3. HISTORIAL DE HITOS COMPLETADOS (FASES 1 - 7)
 - **Fase 1 (TimescaleDB + PostgreSQL 16):** ✅ Hipertablas particionadas, compresión y seeds.
 - **Fase 2 (FastAPI + Ingesta V1 + IA):** ✅ Binance WS, Polymarket Gamma, Redis Pub/Sub, NLP FinBERT, Señales Predictivas y WS `/ws/live`.
 - **Fase 3 (Dashboard Telemetría Admin):** ✅ Matriz de fuentes 45+, KPIs y monitor de hypertables.
@@ -32,42 +32,55 @@
 - **Fase 5 (Seguridad Privada & Auth Gate):** ✅ Zero SEO, Hashing SHA-256 + Bcrypt, Tokens duales en Redis, Next.js Middleware Edge y Login Dark Fintech.
 - **Fase 6A (Optimización Cuantitativa del Motor de Señales):** ✅ Decaimiento exponencial NLP ($\tau_{1/2}=45\text{m}/120\text{m}$), volatilidad realizada $\sigma_{5m}$ y stops dinámicos (R/R 1:2.2).
 - **Fase 6B (Microestructura, Confluencia MTF y Régimen):** ✅ Order Flow Imbalance (OFI), Cumulative Volume Delta (CVD), Confluencia MTF (1m, 5m, 1h), Anti-Whipsaw y Detección Cuantitativa de Régimen.
-- **Fase 6C (Machine Learning Supervisado & Feature Store):** ✅
-  - **Feature Store Cuantitativo (`feature_store.py`):** 14 features multivariables libres de data leakage.
-  - **Triple Barrier Labeling (López de Prado):** Barreras dinámicas con calibración empírica ($\sigma_{\text{tick}} \cdot \sqrt{H}$).
-  - **Clasificador LightGBM (`ml_model.py`):** Árboles regularizados, `StandardScaler` en Train, superación de baselines.
-  - **Inferencia en Tiempo Real en `signal_engine.py`:** Probabilidades $P(\text{BUY}), P(\text{SELL}), P(\text{NEUTRAL})$ y Top Drivers integrados.
-- **Fase 6D (Backtesting Vectorizado & Walk-Forward Performance Matrix):** ✅
-  - **VectorizedBacktester (`backtester.py`):** Simulación realista con comisiones taker (1.5 a 4.0 bps), slippage del bid-ask spread y trailing stops automáticos a Breakeven (+ fees) al alcanzar el 50% de la distancia al objetivo.
-  - **Resolución Microestructura:** Demostración de que con frecuencia de ~4.3s/tick, horizontes $H \ge 1,000$ ticks superan con holgura los costos de fricción de mercado.
-  - **Walk-Forward Matrix:** Folds 1 a 4 cronológicos con rendimiento consistente (+1.07% Fold 1, +1.23% Fold 2, +0.26% Fold 3; Max Drawdown global controlado en 6.37%).
-  - **FastAPI Endpoints:** `GET /api/v1/backtest/latest` y `POST /api/v1/backtest/run`.
-  - **Frontend UI (`BacktestDashboard.tsx`):** Pestaña institucional "Matriz Backtesting", KPIs ejecutivos, desglose de salidas, tabla Walk-Forward, auditoría de trades y ejecutor en vivo.
+- **Fase 6C (Machine Learning Supervisado & Feature Store):** ✅ Feature Store con 14 variables, Triple Barrier Labeling, LightGBM shallow regularizado, e inferencia explicable en tiempo real.
+- **Fase 6D (Backtesting Vectorizado & Walk-Forward Performance Matrix):** ✅ Simulación realista con comisiones taker y slippage, trailing stops a Breakeven, horizonte óptimo $H \ge 1,000$ ticks, matriz de 4 folds consistente, endpoints FastAPI y dashboard UI.
+- **Fase 7.1 (Gestor de Posiciones y Cartera Simulada):** ✅
+  - **DDL TimescaleDB (`05_paper_trading.sql`):** Tabla `paper_accounts` ($10,000 USDT de saldo inicial), tabla `paper_positions` e hipertabla `paper_equity_snapshots` particionada en chunks de 7 días.
+  - **Motor de Dimensionamiento de Riesgo (`position_sizer.py`):** Riesgo fijo (1% por trade), dimensionamiento por volatilidad ATR, límite máximo de margen (25%) y comisiones taker.
+  - **Servicio Asíncrono de Cartera (`portfolio_manager.py`):** Apertura/cierre de posiciones, marcado a mercado, trailing stop dinámico a Breakeven al 50% de camino a TP y eventos Redis PubSub `paper:events`.
+  - **FastAPI Endpoints (`/api/v1/paper/*`):** `GET /account`, `GET /positions/open`, `GET /positions/history`, `GET /equity-curve`, `POST /calculate-sizing`, `POST /positions/open`, `POST /positions/{id}/close`, `POST /account/reset`.
+- **Fase 7.2 (Order Dispatcher & Auto-Ejecución con Confluencia Cuantitativa):** ✅
+  - Worker en segundo plano suscrito a Redis `signals:stream` iniciado con el ciclo de vida de FastAPI.
+  - Puertas de confluencia: confianza ML $\ge 55\%$, acuerdo direccional ML, filtro de confluencia OFI, exclusión de régimen squeeze y deduplicación.
+  - Ejecución con slippage realista (1.5 bps) y registro de actividad en telemetría.
+- **Fase 7.3 (Monitoreo Tick a Tick & Trailing Stop Breakeven Ratchet):** ✅
+  - Monitoreo en tiempo real sobre `ticks:stream` con lookup $O(1)$ de activos con posiciones abiertas.
+  - Marcado a mercado continuo y activación automática de Trailing Stop a Breakeven (+ comisiones) al alcanzar el 50% de distancia al Take Profit.
+  - Auto-liquidación por Take Profit, Stop Loss o Trailing Stop con liberación inmediata de margen y snapshots en TimescaleDB.
+- **Fase 7.4 (Terminal UI de Paper Trading en Next.js):** ✅
+  - Componente institucional de alta densidad `PaperTradingDashboard.tsx` integrado en `Header.tsx` y `page.tsx`.
+  - Ribbon de KPIs de cuenta, panel de control y telemetría de confluencia, calculadora interactiva de dimensionamiento, feed de despacho, tablas de posiciones abiertas y cerradas, gráfico SVG de curva de capital y modal anti-backdrop de reseteo.
+  - 100% de pruebas superadas en `scripts/test_paper_trading.py`, `scripts/test_order_dispatcher.py` y `npm run build` sin errores.
 
 ---
 
 ## 4. ARCHIVOS MODIFICADOS / CREADOS RECIENTEMENTE
-- `app/services/ai/backtester.py` (VectorizedBacktester)
-- `app/api/v1/endpoints/backtest.py` (Endpoints FastAPI GET/POST)
-- `app/api/v1/router.py` (Registro de ruta `/backtest`)
-- `scripts/run_backtest.py` (Runner de backtest y persistencia)
-- `app/services/ai/models/backtest_results.json` (Artefacto JSON de resultados)
-- `frontend/src/types/market.ts` (Tipos TypeScript de backtesting)
-- `frontend/src/services/api.ts` (Cliente API de backtest)
-- `frontend/src/components/trading/BacktestDashboard.tsx` (Dashboard institucional de la Matriz)
-- `frontend/src/components/common/Header.tsx` (Pestaña "Matriz Backtesting")
-- `frontend/src/app/page.tsx` (Renderizado e integración)
-- `PROJECT_STATE.md`, `checkpoint.json`, `semilla.md`, `bitacora.md`
+- `database/init/05_paper_trading.sql` (Esquema DDL e hipertabla)
+- `app/models/paper_trading.py`, `app/models/__init__.py` (Modelos SQLAlchemy)
+- `app/schemas/paper_trading.py`, `app/schemas/__init__.py` (Esquemas Pydantic v2)
+- `app/services/trading/position_sizer.py` (Motor de dimensionamiento de posición)
+- `app/services/trading/portfolio_manager.py`, `app/services/trading/__init__.py` (Servicio de cartera)
+- `app/services/trading/order_dispatcher.py` (Worker de auto-ejecución con confluencia)
+- `app/api/v1/endpoints/paper_trading.py` (Endpoints FastAPI para cartera y despachador)
+- `app/api/v1/router.py` (Registro de router `/paper`)
+- `app/main.py` (Integración de lifespan startup/shutdown del despachador)
+- `scripts/test_paper_trading.py` (Suite de pruebas Fase 7.1)
+- `scripts/test_order_dispatcher.py` (Suite de pruebas Fases 7.2 y 7.3)
+- `frontend/src/types/market.ts` (Tipos TypeScript de Paper Trading y Dispatcher)
+- `frontend/src/services/api.ts` (Clientes de API)
+- `frontend/src/components/trading/PaperTradingDashboard.tsx` (Dashboard UI de Paper Trading)
+- `frontend/src/components/common/Header.tsx` (Pestaña "Paper Trading")
+- `frontend/src/app/page.tsx` (Integración en layout de terminal)
+- `pendiente.md`, `bitacora.md`, `semilla.md`, `checkpoint.json`, `PROJECT_STATE.md`
 
 ---
 
 ## 5. COMANDO DE VERIFICACION RAPIDA (HEALTHCHECK)
 ```bash
-# Validar compilación limpia de frontend y consulta de endpoints de backtesting
-cd frontend && npm run build && cd .. && curl -s http://127.0.0.1:8000/api/v1/backtest/latest | head -n 5
+PYTHONPATH=. .venv/bin/python3 scripts/test_paper_trading.py && PYTHONPATH=. .venv/bin/python3 scripts/test_order_dispatcher.py && cd frontend && npm run build
 ```
 
 ---
 
 ## 6. INSTRUCCION INMEDIATA DE REANUDACION (NEXT ACTION)
-> **INSTRUCCION_DIRECTA:** La Fase 6D está completada y validada al 100%. Realizar git commit y push a GitHub con las mejoras de Fase 6D. Luego proceder a la **Fase 7: Paper Trading / Simulated Order Execution Manager** (ejecución simulada en tiempo real de las señales generadas).
+> **INSTRUCCION_DIRECTA:** La Fase 7 (7.1, 7.2, 7.3, 7.4) está 100% completada, probada y validada. El sistema cuenta con cartera simulada, despacho confluente automático, monitoreo tick a tick con trailing stop ratchet, y dashboard UI reactivo. El próximo paso consiste en consolidar commits en Git y preparar el informe ejecutivo.

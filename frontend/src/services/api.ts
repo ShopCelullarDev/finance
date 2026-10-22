@@ -1,4 +1,19 @@
-import { Asset, PredictiveSignal, NewsEvent, SystemTelemetry, SignalAction, BacktestResult } from '@/types/market';
+import {
+  Asset,
+  PredictiveSignal,
+  NewsEvent,
+  SystemTelemetry,
+  SignalAction,
+  BacktestResult,
+  PaperAccount,
+  PaperPosition,
+  PaperEquitySnapshot,
+  PositionSizingResult,
+  OpenPositionPayload,
+  OrderDispatcherStatus,
+  OrderDispatcherConfig,
+} from '@/types/market';
+
 
 const getApiBase = () => {
   if (typeof window !== 'undefined') {
@@ -217,3 +232,136 @@ export async function triggerBacktestRun(params?: {
   }
   return await res.json();
 }
+
+// ----------------------------------------------------------------------------
+// API de Paper Trading & Portfolio Management
+// ----------------------------------------------------------------------------
+
+export async function fetchPaperAccount(): Promise<PaperAccount> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/account`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Error al obtener cuenta de paper trading: ${res.statusText}`);
+  return await res.json();
+}
+
+export async function fetchOpenPositions(): Promise<PaperPosition[]> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/positions/open`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Error al obtener posiciones abiertas: ${res.statusText}`);
+  return await res.json();
+}
+
+export async function fetchClosedPositions(limit: number = 50): Promise<PaperPosition[]> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/positions/history?limit=${limit}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Error al obtener historial de posiciones: ${res.statusText}`);
+  return await res.json();
+}
+
+export async function fetchEquityCurve(limit: number = 100): Promise<PaperEquitySnapshot[]> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/equity-curve?limit=${limit}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Error al obtener curva de capital: ${res.statusText}`);
+  return await res.json();
+}
+
+export async function calculatePositionSizing(params: {
+  symbol: string;
+  side: string;
+  entry_price: number;
+  stop_loss?: number;
+  take_profit?: number;
+  risk_pct?: number;
+}): Promise<PositionSizingResult> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/calculate-sizing`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Error calculando dimensionamiento: ${res.statusText}`);
+  }
+  return await res.json();
+}
+
+export async function openPaperPosition(
+  payload: OpenPositionPayload,
+  price?: number
+): Promise<PaperPosition> {
+  const url = price ? `${getApiBase()}/api/v1/paper/positions/open?price=${price}` : `${getApiBase()}/api/v1/paper/positions/open`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Error abriendo posición: ${res.statusText}`);
+  }
+  return await res.json();
+}
+
+export async function closePaperPosition(
+  positionId: string,
+  exitPrice?: number,
+  reason: string = 'MANUAL_EXIT'
+): Promise<PaperPosition> {
+  const url = exitPrice
+    ? `${getApiBase()}/api/v1/paper/positions/${positionId}/close?exit_price=${exitPrice}`
+    : `${getApiBase()}/api/v1/paper/positions/${positionId}/close`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ close_reason: reason }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Error cerrando posición: ${res.statusText}`);
+  }
+  return await res.json();
+}
+
+export async function resetPaperAccount(initialBalance: number = 10000.0): Promise<PaperAccount> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/account/reset?initial_balance=${initialBalance}`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Error reiniciando cuenta: ${res.statusText}`);
+  }
+  return await res.json();
+}
+
+export async function fetchDispatcherStatus(): Promise<OrderDispatcherStatus> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/dispatcher/status`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Error obteniendo estado del despachador: ${res.statusText}`);
+  return await res.json();
+}
+
+export async function updateDispatcherConfig(config: OrderDispatcherConfig): Promise<OrderDispatcherStatus> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/dispatcher/config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Error actualizando configuración del despachador: ${res.statusText}`);
+  }
+  return await res.json();
+}
+
+export async function startDispatcher(): Promise<OrderDispatcherStatus> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/dispatcher/start`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Error iniciando despachador: ${res.statusText}`);
+  return await res.json();
+}
+
+export async function stopDispatcher(): Promise<OrderDispatcherStatus> {
+  const res = await fetch(`${getApiBase()}/api/v1/paper/dispatcher/stop`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Error deteniendo despachador: ${res.statusText}`);
+  return await res.json();
+}
+
+

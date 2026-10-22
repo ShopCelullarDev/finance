@@ -41,10 +41,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as e:
         print(f"[Startup - WARNING] Error al iniciar IngestionManager: {e}")
 
+    # 4. Startup: Iniciar OrderDispatcher (Fase 7.2: Auto-Ejecución y Monitoreo de Paper Trading)
+    try:
+        from app.services.trading.order_dispatcher import order_dispatcher
+        await order_dispatcher.start()
+        print("[Startup] OrderDispatcher (Auto-Trading & Live Monitor) iniciado con éxito.")
+    except Exception as e:
+        print(f"[Startup - WARNING] Error al iniciar OrderDispatcher: {e}")
+
     yield
 
-    # Shutdown: Cerrar IngestionManager, pools y conexiones
-    print("[Shutdown] Cerrando IngestionManager y pools de conexiones...")
+    # Shutdown: Cerrar OrderDispatcher, IngestionManager, pools y conexiones
+    print("[Shutdown] Cerrando servicios de trading, ingesta y pools de conexiones...")
+    try:
+        from app.services.trading.order_dispatcher import order_dispatcher
+        await order_dispatcher.stop()
+    except Exception as e:
+        print(f"[Shutdown - WARNING] Error al detener OrderDispatcher: {e}")
+
     try:
         from app.services.ingestion.manager import ingestion_manager
         await ingestion_manager.stop()
@@ -54,6 +68,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await engine.dispose()
     await redis_pool.disconnect()
     print("[Shutdown] Conexiones finalizadas limpiamente.")
+
 
 
 

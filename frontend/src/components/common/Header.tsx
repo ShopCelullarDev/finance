@@ -5,8 +5,8 @@ import { Activity, ShieldCheck, Zap, Radio, Terminal, Database, RefreshCw, LogOu
 import { useAuth } from '@/context/AuthContext';
 
 interface HeaderProps {
-  activeTab: 'trading' | 'backtest' | 'admin';
-  setActiveTab: (tab: 'trading' | 'backtest' | 'admin') => void;
+  activeTab: 'trading' | 'paper' | 'backtest' | 'admin';
+  setActiveTab: (tab: 'trading' | 'paper' | 'backtest' | 'admin') => void;
   connectionStatus: 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR';
   onEvaluateAI: () => void;
   isEvaluating: boolean;
@@ -84,6 +84,17 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Terminal className="h-3.5 w-3.5" />
             Terminal de Trading
+          </button>
+          <button
+            onClick={() => setActiveTab('paper')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'paper'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-[#1c2433]'
+            }`}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Paper Trading
           </button>
           <button
             onClick={() => setActiveTab('backtest')}

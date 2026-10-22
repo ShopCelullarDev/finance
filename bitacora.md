@@ -398,3 +398,94 @@ Este documento registra cronológicamente los avances, eventos técnicos, acuerd
   - `frontend/src/app/page.tsx`
   - `PROJECT_STATE.md`, `checkpoint.json`, `semilla.md`, `bitacora.md`
 - **Estado:** COMPLETADO_VERIFICADO (Fase 6D totalmente operativa en backend y frontend).
+
+---
+
+### [2026-10-22 07:30] - [Gemini 3.8 Flash High] - [backend-fastapi-agent & dba-timescaledb-agent]
+- **Fase / Tarea:** Fase 7.1 - Gestor de Posiciones y Cartera Simulada (Simulated Portfolio Manager)
+- **Acción:**
+  1. **Aislamiento y Salvaguarda de Datos (Safe Deployment Guard):**
+     - Se generó snapshot preventivo transaccional de TimescaleDB antes de la migración (`backup_pre_deploy_phase7.dump`).
+  2. **Esquema de Base de Datos e Hipertablas (`05_paper_trading.sql`):**
+     - Creación de tabla `paper_accounts` para cuentas de trading simulado con saldo libre, margen asignado y métricas de PnL.
+     - Creación de tabla `paper_positions` con estados `OPEN`, `CLOSED`, `CANCELLED`, seguimiento de trailing stops y comisiones.
+     - Creación de hipertabla `paper_equity_snapshots` particionada en chunks semanales de 7 días para el seguimiento de la curva de capital.
+     - Semilla de cuenta principal institucional `$10,000.00 USDT` (`00000000-0000-0000-0000-000000000001`).
+  3. **Motor de Dimensionamiento de Posición (`PositionSizer`):**
+     - Riesgo fraccional fijo configurable (1.0% por trade).
+     - Dimensionamiento dinámico ajustado a volatilidad ATR ($R / \text{distancia SL}$).
+     - Límite de margen máximo de cartera institucional (máx. 25% del capital total).
+     - Validación de efectivo líquido disponible y estimación de comisiones taker (1.5 bps).
+  4. **Servicio Asíncrono de Gestión de Cartera (`PortfolioManager`):**
+     - Apertura y cierre de posiciones con cálculo de PnL bruto, comisiones taker y PnL neto realizado.
+     - Marcado a mercado tick a tick con recálculo dinámico de PnL flotante y retorno porcentual.
+     - Activación automática de Trailing Stop a Breakeven (+ comisiones) al alcanzar el 50% de la distancia al Take Profit.
+     - Emisión de eventos en tiempo real a Redis Pub/Sub (`paper:events`).
+  5. **Modelos ORM, Esquemas y Endpoints REST FastAPI (`/api/v1/paper/*`):**
+     - `app/models/paper_trading.py` y `app/schemas/paper_trading.py`.
+     - Endpoints: `GET /account`, `GET /positions/open`, `GET /positions/history`, `GET /equity-curve`, `POST /calculate-sizing`, `POST /positions/open`, `POST /positions/{id}/close`, `POST /account/reset`.
+  6. **Contratos Frontend Next.js:**
+     - Interfaces en `frontend/src/types/market.ts` (`PaperAccount`, `PaperPosition`, `PaperEquitySnapshot`, etc.).
+     - Funciones cliente en `frontend/src/services/api.ts` (`fetchPaperAccount`, `openPaperPosition`, etc.).
+  7. **Validación:**
+     - Suite integral de pruebas `scripts/test_paper_trading.py` ejecutada con éxito (100% OK).
+     - Compilación estática de Next.js `npm run build` ejecutada con éxito (6/6 páginas estáticas, 0 errores).
+- **Archivos Afectados:**
+  - `database/init/05_paper_trading.sql`
+  - `app/models/paper_trading.py`, `app/models/__init__.py`
+  - `app/schemas/paper_trading.py`, `app/schemas/__init__.py`
+  - `app/services/trading/position_sizer.py`, `app/services/trading/portfolio_manager.py`, `app/services/trading/__init__.py`
+  - `app/api/v1/endpoints/paper_trading.py`, `app/api/v1/router.py`
+  - `scripts/test_paper_trading.py`
+  - `frontend/src/types/market.ts`, `frontend/src/services/api.ts`
+  - `pendiente.md`, `semilla.md`, `bitacora.md`
+- **Estado:** COMPLETADO_VERIFICADO (Fase 7.1 completada y validada en todo el stack).
+
+---
+
+### [2026-10-22 08:05] - [Gemini 3.8 Flash High] - [backend-fastapi-agent, quant-nlp-agent & frontend-terminal-agent]
+- **Fase / Tarea:** Fase 7 (7.2, 7.3, 7.4) - Order Dispatcher con Confluencia Cuantitativa, Monitoreo Tick a Tick en Vivo & Dashboard UI
+- **Acción:**
+  1. **Order Dispatcher en Segundo Plano (`app/services/trading/order_dispatcher.py`):**
+     - Se implementó el worker asíncrono `OrderDispatcher` suscrito a Redis PubSub `signals:stream` y `ticks:stream`, integrado en el ciclo de vida `lifespan` de FastAPI (`app/main.py`).
+     - Filtros de confluencia cuantitativa institucional:
+       - Umbral de confianza ML (configurable, por defecto $\ge 55\%$).
+       - Filtro direccional de consenso ML (acuerdo entre reglas heurísticas e inferencia supervisada LightGBM).
+       - Filtro de confluencia de microestructura OFI (rechazo si el flujo vendedor presiona en contra de una compra: $OFI < -0.20$).
+       - Filtro de régimen de volatilidad (exclusión de aperturas en régimen `VOLATILITY_SQUEEZE`).
+       - Prevención de duplicados para evitar sobre-exposición en el mismo activo.
+     - Ejecución automática con modelado de slippage taker realista (1.5 bps).
+  2. **Monitoreo Tick a Tick & Trailing Stop Breakeven Ratchet en Vivo (Fase 7.3):**
+     - Procesamiento continuo de `ticks:stream` con lookup $O(1)$ de símbolos con posiciones abiertas.
+     - Marcado a mercado instantáneo y activación automática de Trailing Stop a Breakeven (+ comisiones) al alcanzar el 50% de la distancia al Take Profit.
+     - Liquidación automática y desapilado por Take Profit, Stop Loss o Trailing Stop con liberación inmediata de margen y persistencia de snapshots en la hipertabla `paper_equity_snapshots`.
+  3. **Endpoints REST FastAPI para Control y Telemetría del Despachador:**
+     - `GET /api/v1/paper/dispatcher/status`: Estado del worker, métricas de confluencia y registro reciente de órdenes.
+     - `POST /api/v1/paper/dispatcher/start` y `POST /api/v1/paper/dispatcher/stop`: Control en caliente del worker.
+     - `POST /api/v1/paper/dispatcher/config`: Parametrización en caliente de filtros de confluencia y auto-trading.
+  4. **Terminal UI de Paper Trading en Next.js (`frontend/src/components/trading/PaperTradingDashboard.tsx`):**
+     - Ribbon de KPIs ejecutivos: Capital Total, Saldo Disponible, Margen Comprometido, PnL Flotante/Realizado, Win Rate y Profit Factor.
+     - Controles en tiempo real para activar/pausar auto-trading, ajustar umbrales de confluencia y ver contadores de telemetría.
+     - Feed de despacho en vivo con visualización de señales filtradas o ejecutadas.
+     - Panel de cálculo interactivo de dimensionamiento de posición y ejecución manual simulada.
+     - Tablas de alta densidad para posiciones abiertas (con indicador visual de Trailing Stop Breakeven activo y botón de cierre de emergencia) y libro de historial cerrado.
+     - Gráfico SVG estilizado de la curva de capital y modal con protección anti-backdrop para reinicio de cartera.
+     - Integración de pestaña "Paper Trading" en `Header.tsx` y renderizado en `app/page.tsx`.
+  5. **Verificación y Pruebas:**
+     - Suite automatizada `scripts/test_order_dispatcher.py` aprobada al 100% (filtros de confluencia, deduplicación, auto-apertura con slippage, marcado a mercado, trailing stop ratchet y liquidación por TP).
+     - Suite `scripts/test_paper_trading.py` aprobada al 100%.
+     - Compilación estática de Next.js `npm run build` ejecutada con éxito (0 errores TypeScript/ESLint).
+- **Archivos Afectados:**
+  - `app/services/trading/order_dispatcher.py`
+  - `app/api/v1/endpoints/paper_trading.py`
+  - `app/main.py`
+  - `scripts/test_order_dispatcher.py`
+  - `frontend/src/types/market.ts`
+  - `frontend/src/services/api.ts`
+  - `frontend/src/components/trading/PaperTradingDashboard.tsx`
+  - `frontend/src/components/common/Header.tsx`
+  - `frontend/src/app/page.tsx`
+  - `PROJECT_STATE.md`, `checkpoint.json`, `semilla.md`, `bitacora.md`, `pendiente.md`
+- **Estado:** COMPLETADO_VERIFICADO (Fase 7 totalmente terminada y testeada).
+
+

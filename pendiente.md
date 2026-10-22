@@ -156,18 +156,22 @@ Este documento registra todas las tareas de implementación divididas por fases.
 
 ## Fase 7: Paper Trading en Vivo & Simulated Order Execution Manager
 
-- [ ] **7.1 Gestor de Posiciones y Cartera Simulada (Simulated Portfolio Manager)** `Prioridad: Alta` `Agente: backend-fastapi-agent`
-  - [ ] Esquema de base de datos o estado persistente en Redis/TimescaleDB para cuentas de paper trading (balance USDT, margen asignado, PnL realizado).
-  - [ ] Motor de dimensionamiento de posición (Position Sizing) basado en volatilidad ATR y riesgo fijo (ej. 1% por trade).
-- [ ] **7.2 Suscriptor de Señales en Vivo y Auto-Ejecución (Order Dispatcher)** `Prioridad: Alta` `Agente: backend-fastapi-agent`
-  - [ ] Worker en segundo plano suscrito a Redis PubSub `signals:stream`.
-  - [ ] Filtro de confluencia para auto-ejecución (confianza ML >= 55%, OFI en concordancia, filtro de régimen).
-  - [ ] Apertura de órdenes simuladas (Market / Limit con slippage estimado).
-- [ ] **7.3 Monitor de Liquidación y Trailing Stops en Vivo** `Prioridad: Alta` `Agente: backend-fastapi-agent`
-  - [ ] Monitoreo tick a tick de posiciones abiertas frente al feed de precios de Binance WS.
-  - [ ] Disparo automático de Take Profit, Stop Loss y desplazamiento dinámico de Trailing Stop a Breakeven en tiempo real.
-  - [ ] Registro histórico de transacciones ejecutadas en hipertabla o tabla de auditoría.
-- [ ] **7.4 Panel UI de Paper Trading en la Terminal** `Prioridad: Media` `Agente: frontend-terminal-agent`
-  - [ ] Pestaña o widget interactivo con posiciones abiertas en tiempo real (Unrealized PnL, precio de entrada, distancia al SL/TP).
-  - [ ] Botones de cierre manual de emergencia de posiciones.
-  - [ ] Curva de capital (Equity Curve) en vivo y métricas de rendimiento acumuladas.
+- [x] **7.1 Gestor de Posiciones y Cartera Simulada (Simulated Portfolio Manager)** `Prioridad: Alta` `Agente: backend-fastapi-agent`
+  - [x] Esquema DDL en TimescaleDB: tabla `paper_accounts`, `paper_positions` e hipertabla `paper_equity_snapshots` particionada en chunks de 7 días.
+  - [x] Motor de dimensionamiento de posición (`PositionSizer`) adaptado a ATR, riesgo fijo (1% por trade), margen máximo (25%) y comisiones taker.
+  - [x] Servicio asíncrono `PortfolioManager` con apertura/cierre de posiciones, marcado a mercado tick a tick, Trailing Stop a Breakeven (+50% TP distance) y eventos Redis PubSub.
+  - [x] Endpoints REST FastAPI (`/api/v1/paper/*`) y tipos TypeScript/API client en Next.js.
+- [x] **7.2 Suscriptor de Señales en Vivo y Auto-Ejecución (Order Dispatcher)** `Prioridad: Alta` `Agente: backend-fastapi-agent`
+  - [x] Worker en segundo plano suscrito a Redis PubSub `signals:stream`.
+  - [x] Filtro de confluencia para auto-ejecución (confianza ML >= 55%, OFI en concordancia, filtro de régimen, prevención de duplicados).
+  - [x] Apertura de órdenes simuladas (Market con 1.5 bps slippage institucional y taker fees).
+- [x] **7.3 Monitor de Liquidación y Trailing Stops en Vivo** `Prioridad: Alta` `Agente: backend-fastapi-agent`
+  - [x] Monitoreo tick a tick de posiciones abiertas frente a `ticks:stream` con mapeo O(1) de símbolos activos.
+  - [x] Disparo automático de Take Profit, Stop Loss y desplazamiento dinámico de Trailing Stop a Breakeven (+ comisiones) al 50% de la distancia objetivo.
+  - [x] Registro histórico de transacciones ejecutadas en base de datos y snapshots continuos en hipertabla `paper_equity_snapshots`.
+- [x] **7.4 Panel UI de Paper Trading en la Terminal** `Prioridad: Media` `Agente: frontend-terminal-agent`
+  - [x] Pestaña interactiva "Paper Trading" en `Header.tsx` y vista integral `PaperTradingDashboard.tsx`.
+  - [x] Ribbon de KPIs de cartera en tiempo real (Equity, Cash, Margin, PnL flotante/realizado, Win Rate, Profit Factor).
+  - [x] Panel de filtros cuantitativos de confluencia y telemetría de despacho con feed en vivo.
+  - [x] Calculadora de dimensionamiento interactiva y botones de cierre manual de emergencia de posiciones.
+  - [x] Curva de capital (Equity Curve) en tiempo real con SVG gradiente y modal de reinicio de cartera con protección anti-backdrop.
