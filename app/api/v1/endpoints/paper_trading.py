@@ -30,7 +30,7 @@ portfolio_manager = PortfolioManager()
 
 
 async def _resolve_latest_price(db: AsyncSession, symbol: str, fallback_price: Optional[float] = None) -> float:
-    """Obtiene el precio más reciente de mercado desde la hipertabla de ticks."""
+    """Precio explícito del cliente, o el último tick. Sin tick, la orden no se abre."""
     if fallback_price is not None and fallback_price > 0:
         return fallback_price
 
@@ -46,15 +46,10 @@ async def _resolve_latest_price(db: AsyncSession, symbol: str, fallback_price: O
     if latest_price is not None and float(latest_price) > 0:
         return float(latest_price)
 
-    # Fallback predeterminado por activo si aún no hay ticks cargados
-    fallbacks = {
-        "BTC/USDT": 67500.0,
-        "ETH/USDT": 2650.0,
-        "SOL/USDT": 155.0,
-        "BNB/USDT": 590.0,
-        "XRP/USDT": 0.55,
-    }
-    return fallbacks.get(symbol, 100.0)
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=f"No hay tick reciente para '{symbol}'. La orden no se abre sin precio de mercado.",
+    )
 
 
 @router.get(

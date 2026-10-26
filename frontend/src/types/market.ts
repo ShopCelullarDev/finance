@@ -125,8 +125,8 @@ export interface TelemetrySource {
   name: string;
   category: string;
   status: 'ONLINE' | 'DEGRADED' | 'OFFLINE';
-  latency_ms: number;
-  last_event_at: string;
+  latency_ms: number | null;
+  last_event_at: string | null;
   error_count: number;
   rate_per_second: number;
   total_events: number;
@@ -136,10 +136,10 @@ export interface SystemTelemetry {
   database_connected: boolean;
   redis_connected: boolean;
   ticks_ingested_total: number;
-  signals_generated_total: number;
-  active_websocket_clients: number;
-  hypertable_chunks_total: number;
-  compressed_chunks: number;
+  signals_generated_total: number | null;
+  active_websocket_clients: number | null;
+  hypertable_chunks_total: number | null;
+  compressed_chunks: number | null;
   sources: TelemetrySource[];
   timestamp: string;
 }

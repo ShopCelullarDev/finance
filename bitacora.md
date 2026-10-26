@@ -6,6 +6,27 @@ Este documento registra cronológicamente los avances, eventos técnicos, acuerd
 
 ## Registro de Actividades
 
+### [2026-10-26 17:17] - Grok 4.7 - backend-fastapi-agent
+- **Fase / Tarea:** Fase 8.1 - Pausa de sesión
+- **Acción:** Checkpoint para retomar mañana. Semilla, pendiente y estado del proyecto alineados. El código de cierre de API queda guardado; la migración 06 no se ejecutó.
+- **Archivos Afectados:** semilla.md, pendiente.md, bitacora.md, PROJECT_STATE.md
+- **Estado:** PAUSADO
+- **Verificación:** Árbol de trabajo con el cierre 8.1 sin Postgres en marcha. Mañana: aplicar 06 si la base está arriba; no abrir 8.2 hasta que el usuario lo pida.
+
+### [2026-10-26 15:25] - Grok 4.7 - backend-fastapi-agent
+- **Fase / Tarea:** Fase 8.1 - Cerrar la superficie antes de un agente
+- **Acción:** Sesión obligatoria en los routers de mercado, precio de respaldo eliminado, telemetría limitada a conectores reales, copy del libro B y DDL idempotente de account_type.
+- **Archivos Afectados:** app/api/v1/router.py, app/api/v1/endpoints/paper_trading.py, app/api/v1/endpoints/telemetry.py, database/init/05_paper_trading.sql, database/init/06_paper_account_type.sql, frontend/src/services/api.ts, frontend/src/types/market.ts, frontend/src/components/admin/TelemetryDashboard.tsx, frontend/src/components/trading/PaperTradingDashboard.tsx, scripts/test_support.py y scripts de prueba que llaman la API
+- **Estado:** COMPLETADO en código. Migración DDL no ejecutada: sin Postgres ni Docker.
+- **Verificación:** 15 escrituras y las lecturas de esos routers responden 401 sin token. /health responde 200. Telemetría autenticada devuelve sources=[] y signals_generated_total=null. tsc --noEmit del frontend sin errores. La terminal no estaba levantada, así que el clic en la UI no se recorrió en el navegador.
+
+### [2026-10-26 15:10] - Grok 4.7 - auditor-arquitectura
+- **Fase / Tarea:** Auditoría AUD-AGENTE-01 - Preparar el terminal para un agente de análisis
+- **Acción:** Revisión de API, dispatcher, telemetría, esquema de cartera y tamaño de módulos. Sin cambios de código de aplicación. Canvas de hallazgos junto al chat.
+- **Archivos Afectados:** semilla.md, pendiente.md, bitacora.md
+- **Estado:** COMPLETADO
+- **Verificación:** Conteo de líneas y lectura de routers, deps, telemetry, websockets y DDL de paper trading. No se ejecutó la suite de paper trading.
+
 ### [2026-10-20] - Inicialización y Estructuración del Proyecto
 - **Autor / Agente Responsable:** Antigravity AI Orchestrator
 - **Hito:** Análisis de especificaciones de [gemini-code-1792504748028.md](file:///home/gustavo/Documentos/Proyectos_IA/MARKET/gemini-code-1792504748028.md) y establecimiento de la arquitectura de gestión estructurada.

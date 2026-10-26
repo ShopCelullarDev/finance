@@ -216,7 +216,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
 
       if (onNotify) {
         onNotify(
-          `Posición ${orderSide} en ${orderSymbol} ejecutada en ${activeType === 'REAL' ? 'Cartera Real' : 'Cartera Simulada'} con éxito`,
+          `Posición ${orderSide} en ${orderSymbol} ejecutada en ${activeType === 'REAL' ? 'libro B' : 'libro demo'} con éxito`,
           'success'
         );
       }
@@ -325,7 +325,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
       if (onNotify) {
         onNotify(
           activeType === 'REAL'
-            ? 'Cartera Real restablecida a $0.00 USDT'
+            ? 'Libro B restablecido a $0.00 USDT'
             : 'Cartera Simulada restablecida a $10,000.00 USDT',
           'success'
         );
@@ -356,8 +356,8 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
       if (onNotify) {
         onNotify(
           fundOperation === 'SET'
-            ? `Saldo Real establecido a $${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT`
-            : `Depósito de $${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT acreditado al Saldo Real`,
+            ? `Saldo del libro B establecido a $${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT`
+            : `Depósito de $${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })} USDT acreditado al libro B`,
           'success'
         );
       }
@@ -505,11 +505,11 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
                   <Scale className="w-5 h-5" />
                 </span>
                 <h2 className="text-base font-bold text-slate-100 tracking-wide uppercase">
-                  Matriz de Análisis Comparativo: Saldo Real vs Ficticio
+                  Matriz comparativa: libro demo vs libro B
                 </h2>
               </div>
               <p className="text-xs text-slate-400 mt-1 max-w-2xl">
-                Auditoría cuantitativa de divergencia entre la simulación con slippage modelado y la ejecución en vivo con capital real. Compara retornos, tasa de acierto, comisiones y consistencia de señales.
+                Los dos libros son contables. Ninguno envía órdenes a un exchange. Compara retornos, tasa de acierto y comisiones entre el demo y el libro B.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -523,7 +523,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
                 onClick={() => setAccountMode('REAL')}
                 className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition-all cursor-pointer"
               >
-                Ir a Saldo Real
+                Ir al libro B
               </button>
             </div>
           </div>
@@ -600,12 +600,12 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
           {/* Card Right: Saldo Real (Capital en Vivo) */}
           <div className="bg-[#131923] border border-emerald-500/30 rounded-xl p-5 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-950 text-emerald-400 border-b border-l border-emerald-500/30 text-[10px] font-bold uppercase rounded-bl-lg">
-              Capital Real En Vivo
+              Libro contable B
             </div>
             <div className="flex items-center gap-2.5 mb-4">
               <div className="h-3 w-3 rounded-full bg-emerald-400 animate-pulse" />
               <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider">
-                Cartera Real (Capital en Vivo)
+                Libro B (contable)
               </h3>
             </div>
 
@@ -721,11 +721,11 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
               <strong className="text-indigo-300 font-semibold">Veredicto del Motor Cuantitativo:</strong>{' '}
               {real && real.total_trades > 0 ? (
                 <>
-                  La correlación entre las órdenes simuladas y en vivo se mantiene en niveles institucionales con una desviación controlada ({dispatcherStatus?.default_taker_slippage_bps ?? 2.0} bps de slippage estimado). Los filtros de confluencia (ML + OFI + Squeeze) garantizan protección de capital en ambos entornos.
+                  Hay operaciones en ambos libros contables. La desviación usa el slippage modelado del dispatcher ({dispatcherStatus?.default_taker_slippage_bps ?? 2.0} bps). Ningún libro envía la orden a un exchange.
                 </>
               ) : (
                 <>
-                  Aún no se registran órdenes en la Cartera Real. Se recomienda mantener activo el auto-trading en modo simulado para consolidar muestras estadísticas antes de activar la ejecución algorítmica en vivo con capital real.
+                  El libro B todavía no tiene órdenes. Sigue siendo un libro contable interno, igual que el demo.
                 </>
               )}
             </div>
@@ -773,7 +773,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
               }`}
             >
               <div className={`w-2 h-2 rounded-full ${accountMode === 'REAL' ? 'bg-emerald-300 animate-pulse' : 'bg-slate-600'}`} />
-              <span>Saldo Real (En Vivo)</span>
+              <span>Libro B (contable)</span>
             </button>
 
             {/* Botón Comparativa */}
@@ -832,9 +832,9 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold tracking-wide text-slate-50 uppercase font-sans">
                   {accountMode === 'REAL'
-                    ? 'Terminal de Saldo Real & Ejecución en Vivo'
+                    ? 'Terminal del libro contable B'
                     : accountMode === 'COMPARATIVE'
-                    ? 'Benchmark Cuantitativo: Saldo Ficticio vs Real'
+                    ? 'Comparativa: libro demo vs libro B'
                     : 'Terminal de Saldo Ficticio & Paper Trading'}
                 </h1>
                 <span
@@ -849,7 +849,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
                   {accountMode === 'REAL' ? (
                     <>
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      CAPITAL REAL LIVE
+                      LIBRO B CONTABLE
                     </>
                   ) : accountMode === 'COMPARATIVE' ? (
                     'DUAL BENCHMARK'
@@ -860,7 +860,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
               </div>
               <p className="text-xs text-slate-400 font-medium">
                 {accountMode === 'REAL'
-                  ? 'Gestión de Cartera Real • Ejecución Institucional Confluente • Monitoreo de Capital y Riesgo'
+                  ? 'Segundo libro contable • Sin envío a exchange • Mismo motor de riesgo que el demo'
                   : accountMode === 'COMPARATIVE'
                   ? 'Auditoría en Tiempo Real de Alpha, Desviación de Órdenes, Slippage y Rendimiento Cruzado'
                   : 'Gestión de Cartera Simulada • Despacho Confluente ML + OFI • Ratchet Trailing Breakeven a 50% TP'}
@@ -951,7 +951,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
               <button
                 onClick={() => setIsFundModalOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 transition-colors cursor-pointer"
-                title="Acreditar o fijar saldo en la Cartera Real"
+                title="Acreditar o fijar saldo en el libro B"
               >
                 <Wallet className="w-3.5 h-3.5" />
                 <span>+ Fondear Real</span>
@@ -962,7 +962,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
             <button
               onClick={() => setIsResetModalOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/40 transition-colors cursor-pointer"
-              title={accountMode === 'REAL' ? 'Reiniciar Historial de Cartera Real' : 'Reiniciar Saldo y Borrar Historial de Operaciones'}
+              title={accountMode === 'REAL' ? 'Reiniciar historial del libro B' : 'Reiniciar Saldo y Borrar Historial de Operaciones'}
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>{accountMode === 'REAL' ? 'Reiniciar Historial' : 'Reiniciar Cartera'}</span>
@@ -1708,7 +1708,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
           <div className="flex items-center gap-2.5 text-rose-400">
             <AlertTriangle className="w-5 h-5" />
             <h3 className="text-sm font-bold text-slate-100 uppercase">
-              {accountMode === 'REAL' ? 'Reiniciar Cartera de Capital Real' : 'Confirmar Reinicio de Cartera Demo'}
+              {accountMode === 'REAL' ? 'Reiniciar libro contable B' : 'Confirmar Reinicio de Cartera Demo'}
             </h3>
           </div>
           <button
@@ -1722,7 +1722,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
         <p className="text-xs text-slate-300 leading-relaxed">
           {accountMode === 'REAL' ? (
             <>
-              Esta acción cerrará todas las posiciones activas en la <strong className="text-emerald-400 font-mono">Cartera Real</strong>,
+              Esta acción cerrará todas las posiciones activas en el <strong className="text-emerald-400 font-mono">libro B</strong>,
               borrará el historial de operaciones y restablecerá los indicadores de rendimiento acumulados.
             </>
           ) : (
@@ -1753,7 +1753,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
             disabled={isResetting}
             className="px-4 py-2 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-sm shadow-rose-600/30 transition-colors cursor-pointer disabled:opacity-50"
           >
-            {isResetting ? 'Reiniciando...' : accountMode === 'REAL' ? 'Sí, Reiniciar Historial Real' : 'Sí, Reiniciar Cartera Demo'}
+            {isResetting ? 'Reiniciando...' : accountMode === 'REAL' ? 'Sí, reiniciar libro B' : 'Sí, Reiniciar Cartera Demo'}
           </button>
         </div>
       </div>
@@ -1771,7 +1771,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
           <div className="flex items-center gap-2.5 text-emerald-400">
             <Wallet className="w-5 h-5" />
             <h3 className="text-sm font-bold text-slate-100 uppercase">
-              Gestión de Saldo Real (Capital en Vivo)
+              Ajuste del libro contable B
             </h3>
           </div>
           <button
@@ -1783,7 +1783,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
         </div>
 
         <p className="text-xs text-slate-300 leading-relaxed">
-          Configura o acredita fondos en tu cartera de capital real para asignación algorítmica de margen, dimensionamiento de órdenes y control de riesgo en vivo.
+          Ajusta el saldo del libro B. El movimiento queda en la base local y no se envía a un exchange.
         </p>
 
         {/* Selector de Operación: SET vs DEPOSIT */}
@@ -1873,7 +1873,7 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
             disabled={isFunding}
             className="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-600/30 transition-colors cursor-pointer disabled:opacity-50"
           >
-            {isFunding ? 'Guardando...' : fundOperation === 'SET' ? 'Fijar Saldo Real' : 'Acreditar Depósito'}
+            {isFunding ? 'Guardando...' : fundOperation === 'SET' ? 'Fijar saldo del libro B' : 'Acreditar Depósito'}
           </button>
         </div>
       </div>

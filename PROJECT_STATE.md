@@ -4,10 +4,10 @@
 ---
 
 ## 1. METADATOS DE SINCRONIZACION
-- **FECHA_HORA_ACTUALIZACION:** 2026-10-22T08:00:00-04:00
-- **MODELO_ACTIVO:** Gemini 3.8 Flash (High) / Antigravity AI Orchestrator
+- **FECHA_HORA_ACTUALIZACION:** 2026-10-26T17:17:00-04:00
+- **MODELO_ACTIVO:** Grok 4.7
 - **RAMA_GIT:** `main`
-- **ESTADO_REPOSITORIO:** Fases 1 a 7 Completadas y Verificadas al 100% (Backend, DDL TimescaleDB, Workers Redis y Frontend Next.js)
+- **ESTADO_REPOSITORIO:** Fases 1 a 7 cerradas. Fase 8.1 en código y pausada hasta mañana. El punto de reanudación vivo es semilla.md.
 
 ---
 
@@ -18,9 +18,9 @@
   - 🛡️ **Gate de Autenticación Mandatorio:** Terminal protegida por pantalla de Login institucional (`/login`), Next.js Middleware Edge interceptando accesos no autenticados, y FastAPI dependencias `get_current_user`.
   - 🔑 **Criptografía & Sesiones:** Hashing con SHA-256 + Bcrypt (12 rondas), JWT Access Token (15m) + Refresh Token (7d) con whitelist y revocación en Redis, y tickets de un solo uso para WebSockets.
   - ⏱️ **Rate Limiting:** Ventana deslizante en Redis sobre `/api/v1/auth/login` (máx. 5 intentos, bloqueo temporal por IP/identificador).
-- **FASE_ACTUAL:** Fase 7 - Paper Trading en Vivo & Simulated Order Execution Manager
-- **ID_SUBTAREA_ACTUAL:** Fase 7 Completa (7.1, 7.2, 7.3, 7.4)
-- **ESTADO_SUBTAREA:** COMPLETADO_VERIFICADO
+- **FASE_ACTUAL:** Fase 8.1 - Cerrar la superficie antes de un agente
+- **ID_SUBTAREA_ACTUAL:** 8.1 (sesión obligatoria hecha; DDL 06 sin aplicar)
+- **ESTADO_SUBTAREA:** PAUSADO
 
 ---
 
@@ -83,4 +83,4 @@ PYTHONPATH=. .venv/bin/python3 scripts/test_paper_trading.py && PYTHONPATH=. .ve
 ---
 
 ## 6. INSTRUCCION INMEDIATA DE REANUDACION (NEXT ACTION)
-> **INSTRUCCION_DIRECTA:** La Fase 7 (7.1, 7.2, 7.3, 7.4) está 100% completada, probada y validada. El sistema cuenta con cartera simulada, despacho confluente automático, monitoreo tick a tick con trailing stop ratchet, y dashboard UI reactivo. El próximo paso consiste en consolidar commits en Git y preparar el informe ejecutivo.
+> **INSTRUCCION_DIRECTA:** Sesión pausada el 2026-10-26. Leer semilla.md y continuar mañana. No implementar el brief del agente. Si TimescaleDB está arriba, respaldar y aplicar database/init/06_paper_account_type.sql. Los routers de mercado ya exigen sesión.

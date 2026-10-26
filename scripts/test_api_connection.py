@@ -3,6 +3,7 @@ import sys
 import httpx
 from app.main import app
 from app.core.config import settings
+from scripts.test_support import install_test_session
 
 
 async def main():
@@ -19,6 +20,11 @@ async def main():
         assert res.json()["redis_connected"] is True, "Redis should be connected"
         assert res.json()["status"] == "ok", "Overall status should be ok"
         print("[+] /health is OK!")
+
+        anon = await client.get("/api/v1/assets/")
+        assert anon.status_code == 401, f"Sin sesión debía responder 401, obtuvo {anon.status_code}"
+        print("[+] GET /api/v1/assets/ sin sesión -> 401")
+        install_test_session()
 
         # 2. Test GET /api/v1/assets/
         print("\n--- Testing GET /api/v1/assets/ ---")

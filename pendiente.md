@@ -175,3 +175,21 @@ Este documento registra todas las tareas de implementación divididas por fases.
   - [x] Panel de filtros cuantitativos de confluencia y telemetría de despacho con feed en vivo.
   - [x] Calculadora de dimensionamiento interactiva y botones de cierre manual de emergencia de posiciones.
   - [x] Curva de capital (Equity Curve) en tiempo real con SVG gradiente y modal de reinicio de cartera con protección anti-backdrop.
+
+---
+
+## Fase 8: Preparar el terminal para un agente de análisis (propuesta de auditoría 2026-10-26)
+
+Sesión pausada el 2026-10-26 17:17. Mañana: aplicar `database/init/06_paper_account_type.sql` si TimescaleDB está arriba. No abrir 8.2 hasta que se pida.
+
+- [/] **8.1 Cerrar la superficie antes de cualquier agente** `Prioridad: Alta` `Agente: devops-security-agent`
+  - [x] Exigir `get_current_user` en paper, signals, news, telemetry, backtest y assets.
+  - [x] Quitar precios de respaldo en `_resolve_latest_price`. Sin tick, la orden no se abre.
+  - [x] Quitar fuentes ONLINE ficticias de `telemetry.py`.
+  - [/] `account_type` está en `05_paper_trading.sql` y en `06_paper_account_type.sql`. Falta aplicarlo: no había Postgres ni Docker en marcha. La UI ya llama al segundo libro «libro B» y aclara que no sale a un exchange.
+- [ ] **8.2 Brief de solo lectura para el agente** `Prioridad: Alta` `Agente: backend-fastapi-agent`
+  - [ ] `GET /api/v1/agent/brief` compacto: precio real o ausencia, señal, régimen, factores, posiciones y estado del dispatcher.
+  - [ ] API key o scope de solo lectura, distinto del permiso de ejecución.
+- [ ] **8.3 Ejecutor acotado al libro SIMULATED** `Prioridad: Media` `Agente: backend-fastapi-agent`
+  - [ ] Intención de orden con idempotencia y `actor=agente`. Reset, fondeo y libro REAL fuera de esa clave.
+  - [ ] Persistir la configuración del dispatcher. Hoy vive solo en memoria.

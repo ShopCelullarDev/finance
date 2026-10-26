@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 
 from app.core.database import AsyncSessionLocal
 from app.main import app
+from scripts.test_support import install_test_session
 from app.models.asset import Asset
 from app.models.news_event import NewsEvent
 from app.models.predictive_signal import PredictiveSignal
@@ -115,6 +116,11 @@ async def main():
     print("\n[PASO 3] Probando endpoints REST de Señales y Noticias...")
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        anon = await client.get("/api/v1/signals/?limit=1")
+        assert anon.status_code == 401, f"Sin sesión debía responder 401, obtuvo {anon.status_code}"
+        print("[+] GET /api/v1/signals/ sin sesión -> 401")
+        install_test_session()
+
         # GET /api/v1/news/
         res_news = await client.get("/api/v1/news/?limit=5")
         assert res_news.status_code == 200

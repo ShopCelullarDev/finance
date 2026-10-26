@@ -17,6 +17,7 @@ from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
 from app.main import app
+from scripts.test_support import install_test_session
 from app.models.paper_trading import PaperAccount, PaperPosition
 from app.schemas.paper_trading import OpenPositionRequest
 from app.services.trading.portfolio_manager import PortfolioManager
@@ -157,6 +158,11 @@ async def run_tests():
     print("\n--- 3. Probando Endpoints REST FastAPI (/api/v1/paper/*) ---")
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        anon = await client.get("/api/v1/paper/account")
+        assert anon.status_code == 401, f"Sin sesión debía responder 401, obtuvo {anon.status_code}"
+        print("  [+] GET /api/v1/paper/account sin sesión -> 401")
+        install_test_session()
+
         # GET /api/v1/paper/account
         r = await client.get("/api/v1/paper/account")
         assert r.status_code == 200, f"Error {r.status_code}: {r.text}"

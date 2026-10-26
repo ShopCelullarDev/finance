@@ -18,11 +18,13 @@ CREATE TABLE IF NOT EXISTS paper_accounts (
     winning_trades INT NOT NULL DEFAULT 0,
     losing_trades INT NOT NULL DEFAULT 0,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    account_type VARCHAR(20) NOT NULL DEFAULT 'SIMULATED',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_paper_accounts_user ON paper_accounts (user_id);
+CREATE INDEX IF NOT EXISTS idx_paper_accounts_type ON paper_accounts (account_type);
 
 -- 2. Tabla de Posiciones y Órdenes Simuladas (Open & Closed Trades)
 CREATE TABLE IF NOT EXISTS paper_positions (

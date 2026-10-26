@@ -14,6 +14,7 @@ import {
   OrderDispatcherStatus,
   OrderDispatcherConfig,
 } from '@/types/market';
+import { authService } from '@/services/auth';
 
 
 const getApiBase = () => {
@@ -23,6 +24,17 @@ const getApiBase = () => {
   }
   return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 };
+
+function withAuth(init: RequestInit = {}): RequestInit {
+  const headers = new Headers(init.headers);
+  const token = authService.getAccessToken();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  return { ...init, headers, credentials: 'include' };
+}
+
+async function apiFetch(input: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(input, withAuth(init));
+}
 
 const ASSET_ID_TO_SYMBOL: Record<number, string> = {
   1: 'BTC/USDT',
@@ -78,14 +90,14 @@ export function normalizeSignal(raw: any): PredictiveSignal {
 }
 
 export async function fetchHealth(): Promise<{ status: string; database_connected: boolean; redis_connected: boolean }> {
-  const res = await fetch(`${getApiBase()}/api/v1/health`, { cache: 'no-store' });
+  const res = await apiFetch(`${getApiBase()}/api/v1/health`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Health check failed: ${res.statusText}`);
   return res.json();
 }
 
 export async function fetchAssets(): Promise<Asset[]> {
   try {
-    const res = await fetch(`${getApiBase()}/api/v1/assets/`, { cache: 'no-store' });
+    const res = await apiFetch(`${getApiBase()}/api/v1/assets/`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Failed to fetch assets: ${res.statusText}`);
     return await res.json();
   } catch (err) {
@@ -104,7 +116,7 @@ export async function fetchAssets(): Promise<Asset[]> {
 
 export async function fetchSignals(limit: number = 20): Promise<PredictiveSignal[]> {
   try {
-    const res = await fetch(`${getApiBase()}/api/v1/signals/?limit=${limit}`, { cache: 'no-store' });
+    const res = await apiFetch(`${getApiBase()}/api/v1/signals/?limit=${limit}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Failed to fetch signals: ${res.statusText}`);
     const raw = await res.json();
     if (Array.isArray(raw)) {
@@ -118,7 +130,7 @@ export async function fetchSignals(limit: number = 20): Promise<PredictiveSignal
 }
 
 export async function triggerSignalEvaluation(symbol: string, timeframe: string = '5m'): Promise<PredictiveSignal> {
-  const res = await fetch(`${getApiBase()}/api/v1/signals/evaluate/${encodeURIComponent(symbol)}?timeframe=${timeframe}`, {
+  const res = await apiFetch(`${getApiBase()}/api/v1/signals/evaluate/${encodeURIComponent(symbol)}?timeframe=${timeframe}`, {
     method: 'POST',
   });
   if (!res.ok) throw new Error(`Signal evaluation failed: ${res.statusText}`);
@@ -160,7 +172,7 @@ export function normalizeNews(raw: any): NewsEvent {
 
 export async function fetchNews(limit: number = 15): Promise<NewsEvent[]> {
   try {
-    const res = await fetch(`${getApiBase()}/api/v1/news/?limit=${limit}`, { cache: 'no-store' });
+    const res = await apiFetch(`${getApiBase()}/api/v1/news/?limit=${limit}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Failed to fetch news: ${res.statusText}`);
     const raw = await res.json();
     if (Array.isArray(raw)) {
@@ -175,35 +187,28 @@ export async function fetchNews(limit: number = 15): Promise<NewsEvent[]> {
 
 export async function fetchTelemetry(): Promise<SystemTelemetry> {
   try {
-    const res = await fetch(`${getApiBase()}/api/v1/telemetry/overview`, { cache: 'no-store' });
+    const res = await apiFetch(`${getApiBase()}/api/v1/telemetry/overview`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Failed to fetch telemetry: ${res.statusText}`);
     return await res.json();
   } catch (err) {
-    console.warn('[API] Fallback for telemetry:', err);
+    console.warn('[API] Telemetría no disponible:', err);
     return {
-      database_connected: true,
-      redis_connected: true,
-      ticks_ingested_total: 145820,
-      signals_generated_total: 312,
-      active_websocket_clients: 4,
-      hypertable_chunks_total: 12,
-      compressed_chunks: 8,
+      database_connected: false,
+      redis_connected: false,
+      ticks_ingested_total: 0,
+      signals_generated_total: null,
+      active_websocket_clients: null,
+      hypertable_chunks_total: null,
+      compressed_chunks: null,
       timestamp: new Date().toISOString(),
-      sources: [
-        { id: 'binance_ws', name: 'Binance Live WebSocket', category: 'Vector 1: Exchanges', status: 'ONLINE', latency_ms: 18, last_event_at: new Date().toISOString(), error_count: 0, rate_per_second: 120, total_events: 89400 },
-        { id: 'polymarket_gamma', name: 'Polymarket Gamma API', category: 'Vector 1: Prediction', status: 'ONLINE', latency_ms: 45, last_event_at: new Date().toISOString(), error_count: 0, rate_per_second: 8, total_events: 12400 },
-        { id: 'kraken_ws', name: 'Kraken Institutional WS', category: 'Vector 1: Exchanges', status: 'ONLINE', latency_ms: 28, last_event_at: new Date().toISOString(), error_count: 1, rate_per_second: 65, total_events: 42100 },
-        { id: 'coingecko_pro', name: 'CoinGecko Pro Macro API', category: 'Vector 2: Macro Metrics', status: 'ONLINE', latency_ms: 95, last_event_at: new Date().toISOString(), error_count: 0, rate_per_second: 2, total_events: 3400 },
-        { id: 'fred_macro', name: 'Federal Reserve FRED', category: 'Vector 4: Central Banks', status: 'ONLINE', latency_ms: 110, last_event_at: new Date().toISOString(), error_count: 0, rate_per_second: 1, total_events: 850 },
-        { id: 'fear_greed_idx', name: 'Alternative.me Sentiment', category: 'Vector 3: Sentiment & NLP', status: 'ONLINE', latency_ms: 82, last_event_at: new Date().toISOString(), error_count: 0, rate_per_second: 1, total_events: 1420 },
-      ]
+      sources: [],
     };
   }
 }
 
 export async function fetchLatestBacktest(): Promise<BacktestResult | null> {
   try {
-    const res = await fetch(`${getApiBase()}/api/v1/backtest/latest`, { cache: 'no-store' });
+    const res = await apiFetch(`${getApiBase()}/api/v1/backtest/latest`, { cache: 'no-store' });
     if (!res.ok) {
       if (res.status === 404) return null;
       throw new Error(`Failed to fetch backtest results: ${res.statusText}`);
@@ -222,7 +227,7 @@ export async function triggerBacktestRun(params?: {
   max_holding_ticks?: number;
   taker_fee_bps?: number;
 }): Promise<BacktestResult> {
-  const res = await fetch(`${getApiBase()}/api/v1/backtest/run`, {
+  const res = await apiFetch(`${getApiBase()}/api/v1/backtest/run`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params || {}),
@@ -239,13 +244,13 @@ export async function triggerBacktestRun(params?: {
 // ----------------------------------------------------------------------------
 
 export async function fetchPaperAccount(accountType: 'SIMULATED' | 'REAL' = 'SIMULATED'): Promise<PaperAccount> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/account?account_type=${accountType}`, { cache: 'no-store' });
+  const res = await apiFetch(`${getApiBase()}/api/v1/paper/account?account_type=${accountType}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Error al obtener cuenta de paper trading: ${res.statusText}`);
   return await res.json();
 }
 
 export async function fetchDualPortfolioSummary(): Promise<DualPortfolioSummary> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/portfolio/dual-summary`, { cache: 'no-store' });
+  const res = await apiFetch(`${getApiBase()}/api/v1/paper/portfolio/dual-summary`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Error al obtener resumen dual de carteras: ${res.statusText}`);
   return await res.json();
 }
@@ -255,7 +260,7 @@ export async function fundAccount(payload: {
   operation_type?: 'SET' | 'DEPOSIT';
   account_type?: 'SIMULATED' | 'REAL';
 }): Promise<PaperAccount> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/account/fund`, {
+  const res = await apiFetch(`${getApiBase()}/api/v1/paper/account/fund`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -272,19 +277,19 @@ export async function fundAccount(payload: {
 }
 
 export async function fetchOpenPositions(accountType: 'SIMULATED' | 'REAL' = 'SIMULATED'): Promise<PaperPosition[]> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/positions/open?account_type=${accountType}`, { cache: 'no-store' });
+  const res = await apiFetch(`${getApiBase()}/api/v1/paper/positions/open?account_type=${accountType}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Error al obtener posiciones abiertas: ${res.statusText}`);
   return await res.json();
 }
 
 export async function fetchClosedPositions(limit: number = 50, accountType: 'SIMULATED' | 'REAL' = 'SIMULATED'): Promise<PaperPosition[]> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/positions/history?limit=${limit}&account_type=${accountType}`, { cache: 'no-store' });
+  const res = await apiFetch(`${getApiBase()}/api/v1/paper/positions/history?limit=${limit}&account_type=${accountType}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Error al obtener historial de posiciones: ${res.statusText}`);
   return await res.json();
 }
 
 export async function fetchEquityCurve(limit: number = 100, accountType: 'SIMULATED' | 'REAL' = 'SIMULATED'): Promise<PaperEquitySnapshot[]> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/equity-curve?limit=${limit}&account_type=${accountType}`, { cache: 'no-store' });
+  const res = await apiFetch(`${getApiBase()}/api/v1/paper/equity-curve?limit=${limit}&account_type=${accountType}`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Error al obtener curva de capital: ${res.statusText}`);
   return await res.json();
 }
@@ -299,7 +304,7 @@ export async function calculatePositionSizing(params: {
   account_type?: 'SIMULATED' | 'REAL';
 }): Promise<PositionSizingResult> {
   const accountType = params.account_type || 'SIMULATED';
-  const res = await fetch(`${getApiBase()}/api/v1/paper/calculate-sizing?account_type=${accountType}`, {
+  const res = await apiFetch(`${getApiBase()}/api/v1/paper/calculate-sizing?account_type=${accountType}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -319,7 +324,7 @@ export async function openPaperPosition(
   const query = new URLSearchParams({ account_type: accountType });
   if (price) query.append('price', price.toString());
   const url = `${getApiBase()}/api/v1/paper/positions/open?${query.toString()}`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -339,7 +344,7 @@ export async function closePaperPosition(
   const url = exitPrice
     ? `${getApiBase()}/api/v1/paper/positions/${positionId}/close?exit_price=${exitPrice}`
     : `${getApiBase()}/api/v1/paper/positions/${positionId}/close`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ close_reason: reason }),
@@ -355,7 +360,7 @@ export async function resetPaperAccount(
   initialBalance: number = 10000.0,
   accountType: 'SIMULATED' | 'REAL' = 'SIMULATED'
 ): Promise<PaperAccount> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/account/reset?initial_balance=${initialBalance}&account_type=${accountType}`, {
+  const res = await apiFetch(`${getApiBase()}/api/v1/paper/account/reset?initial_balance=${initialBalance}&account_type=${accountType}`, {
     method: 'POST',
   });
   if (!res.ok) {
@@ -366,13 +371,13 @@ export async function resetPaperAccount(
 }
 
 export async function fetchDispatcherStatus(): Promise<OrderDispatcherStatus> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/dispatcher/status`, { cache: 'no-store' });
+  const res = await apiFetch(`${getApiBase()}/api/v1/paper/dispatcher/status`, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Error obteniendo estado del despachador: ${res.statusText}`);
   return await res.json();
 }
 
 export async function updateDispatcherConfig(config: OrderDispatcherConfig): Promise<OrderDispatcherStatus> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/dispatcher/config`, {
+  const res = await apiFetch(`${getApiBase()}/api/v1/paper/dispatcher/config`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(config),
@@ -385,7 +390,7 @@ export async function updateDispatcherConfig(config: OrderDispatcherConfig): Pro
 }
 
 export async function startDispatcher(): Promise<OrderDispatcherStatus> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/dispatcher/start`, {
+  const res = await apiFetch(`${getApiBase()}/api/v1/paper/dispatcher/start`, {
     method: 'POST',
   });
   if (!res.ok) throw new Error(`Error iniciando despachador: ${res.statusText}`);
@@ -393,7 +398,7 @@ export async function startDispatcher(): Promise<OrderDispatcherStatus> {
 }
 
 export async function stopDispatcher(): Promise<OrderDispatcherStatus> {
-  const res = await fetch(`${getApiBase()}/api/v1/paper/dispatcher/stop`, {
+  const res = await apiFetch(`${getApiBase()}/api/v1/paper/dispatcher/stop`, {
     method: 'POST',
   });
   if (!res.ok) throw new Error(`Error deteniendo despachador: ${res.statusText}`);
