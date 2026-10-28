@@ -159,7 +159,8 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
 
   // Handle position sizing preview calculation
   const handleCalculateSizing = useCallback(async () => {
-    const markPrice = currentPriceMap[orderSymbol] || (orderSymbol === 'BTC/USDT' ? 82450.5 : 2450.0);
+    const markPrice = currentPriceMap[orderSymbol];
+    if (!markPrice) return;
     setIsCalculatingSizing(true);
     try {
       const sl = parseFloat(orderStopLoss) || undefined;
@@ -196,7 +197,8 @@ export const PaperTradingDashboard: React.FC<PaperTradingDashboardProps> = ({
   const handleOpenPosition = async () => {
     setIsSubmittingOrder(true);
     try {
-      const markPrice = currentPriceMap[orderSymbol] || (orderSymbol === 'BTC/USDT' ? 82450.5 : 2450.0);
+      const markPrice = currentPriceMap[orderSymbol];
+      if (!markPrice) return;
       const sl = parseFloat(orderStopLoss) || undefined;
       const tp = parseFloat(orderTakeProfit) || undefined;
       const activeType = accountMode === 'REAL' ? 'REAL' : 'SIMULATED';

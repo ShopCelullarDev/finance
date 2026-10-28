@@ -6,6 +6,8 @@ from app.api.v1.endpoints import (
     auth,
     backtest,
     health,
+    live_stream,
+    market_data,
     news,
     paper_trading,
     signals,
@@ -27,6 +29,8 @@ api_router.include_router(backtest.router, prefix="/backtest", tags=["Backtestin
 api_router.include_router(paper_trading.router, prefix="/paper", tags=["Paper Trading & Portfolio"], dependencies=_session)
 api_router.include_router(news.router, prefix="/news", tags=["Noticias & NLP"], dependencies=_session)
 api_router.include_router(websockets.router, prefix="/ws", tags=["WebSockets Gateway"])
+api_router.include_router(live_stream.router, prefix="/stream", tags=["Canal en vivo"])
+api_router.include_router(market_data.router, prefix="/market", tags=["Mercado en vivo"], dependencies=_session)
 
 
 

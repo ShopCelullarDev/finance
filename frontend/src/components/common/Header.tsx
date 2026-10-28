@@ -31,10 +31,10 @@ export const Header: React.FC<HeaderProps> = ({
         return (
           <div
             className="flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[11px] font-mono font-medium text-emerald-400 bg-emerald-950/40 border border-emerald-500/30"
-            title="WebSocket conectado en tiempo real (heartbeat 1000ms)"
+            title="Canal en vivo conectado"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#10b981]" />
-            <span>LIVE WS</span>
+            <span>LIVE</span>
           </div>
         );
       case 'CONNECTING':

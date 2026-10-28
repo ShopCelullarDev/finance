@@ -1,4 +1,4 @@
-import { authService } from './auth';
+import { getApiBase } from './origin';
 
 export type MessageHandler = (data: any) => void;
 
@@ -7,6 +7,7 @@ export type ConnectionStatus = 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ER
 export class MarketWebSocketClient {
   private url: string = '';
   private ws: WebSocket | null = null;
+  private source: EventSource | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 25;
   private reconnectInterval = 1500;
@@ -21,10 +22,11 @@ export class MarketWebSocketClient {
   }
 
   public getStatus(): ConnectionStatus {
-    if (!this.ws) return 'DISCONNECTED';
-    if (this.ws.readyState === WebSocket.OPEN) return 'CONNECTED';
-    if (this.ws.readyState === WebSocket.CONNECTING) return 'CONNECTING';
-    return 'DISCONNECTED';
+    if (this.source) {
+      if (this.source.readyState === EventSource.OPEN) return 'CONNECTED';
+      if (this.source.readyState === EventSource.CONNECTING) return 'CONNECTING';
+    }
+    return this.currentStatus === 'CONNECTING' ? 'CONNECTING' : 'DISCONNECTED';
   }
 
   private notifyStatus(status: ConnectionStatus): void {
@@ -54,93 +56,43 @@ export class MarketWebSocketClient {
     }
   }
 
-  private resolveUrl(): string {
-    let token = authService.getAccessToken();
-    if (!token && typeof window !== 'undefined') {
-      token = localStorage.getItem('market_access_token');
-    }
-    const query = token ? `?token=${encodeURIComponent(token)}` : '';
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname || '127.0.0.1';
-      return `ws://${host}:8000/ws/live${query}`;
-    }
-    return `ws://127.0.0.1:8000/ws/live${query}`;
+  private dispatch(payload: any): void {
+    const type = payload.type || payload.action || (payload.channel ? String(payload.channel).split(':')[0] : 'general');
+    this.listeners.get(type)?.forEach((fn) => fn(payload));
+    this.listeners.get('*')?.forEach((fn) => fn(payload));
   }
 
   public connect(): void {
     if (typeof window === 'undefined') return;
-
-    if (this.ws) {
-      if (this.ws.readyState === WebSocket.OPEN) {
-        this.notifyStatus('CONNECTED');
-        return;
-      }
-      if (this.ws.readyState === WebSocket.CONNECTING) {
-        this.notifyStatus('CONNECTING');
-        return;
-      }
+    if (this.source && this.source.readyState !== EventSource.CLOSED) {
+      this.notifyStatus(this.source.readyState === EventSource.OPEN ? 'CONNECTED' : 'CONNECTING');
+      return;
     }
 
-    this.url = this.resolveUrl();
+    this.url = `${getApiBase()}/api/v1/stream/live`;
     this.notifyStatus('CONNECTING');
-    console.log('[WebSocket] Conectando a Gateway:', this.url);
 
     try {
-      this.ws = new WebSocket(this.url);
-
-      this.ws.onopen = () => {
+      this.source = new EventSource(this.url);
+      this.source.onopen = () => {
         this.reconnectAttempts = 0;
         this.notifyStatus('CONNECTED');
-        console.log('[WebSocket] Conexión abierta con éxito en:', this.url);
-
-        // Suscribir a los canales guardados
-        if (this.subscribedChannels.size > 0) {
-          this.send({
-            action: 'subscribe',
-            channels: Array.from(this.subscribedChannels),
-          });
-        }
-
-        this.startHeartbeat();
       };
-
-      this.ws.onmessage = (event) => {
+      this.source.onmessage = (event) => {
         try {
-          const payload = JSON.parse(event.data);
-          const type = payload.type || payload.action || (payload.channel ? payload.channel.split(':')[0] : 'general');
-
-          const typeListeners = this.listeners.get(type);
-          if (typeListeners) {
-            typeListeners.forEach((fn) => fn(payload));
-          }
-
-          const allListeners = this.listeners.get('*');
-          if (allListeners) {
-            allListeners.forEach((fn) => fn(payload));
-          }
+          this.dispatch(JSON.parse(event.data));
         } catch (e) {
-          console.error('[WebSocket] Error al deserializar payload JSON:', e);
+          console.error('[Canal] Payload ilegible:', e);
         }
       };
-
-      this.ws.onerror = (err) => {
-        console.warn('[WebSocket] Error de socket:', err);
-        this.notifyStatus('ERROR');
-      };
-
-      this.ws.onclose = (event: CloseEvent) => {
-        this.stopHeartbeat();
+      this.source.onerror = () => {
         this.notifyStatus('DISCONNECTED');
-        if (event.code === 1008 || event.code === 4001) {
-          console.warn('[WebSocket] Conexión denegada por política o autenticación (1008/4001).');
-          this.notifyStatus('ERROR');
-          return;
-        }
-        console.warn('[WebSocket] Conexión cerrada. Intentando reconectar...');
+        this.source?.close();
+        this.source = null;
         this.scheduleReconnect();
       };
     } catch (err) {
-      console.error('[WebSocket] Error al crear WebSocket:', err);
+      console.error('[Canal] No se pudo abrir:', err);
       this.notifyStatus('ERROR');
       this.scheduleReconnect();
     }
@@ -213,6 +165,11 @@ export class MarketWebSocketClient {
 
   public disconnect(): void {
     this.stopHeartbeat();
+    this.reconnectAttempts = this.maxReconnectAttempts;
+    if (this.source) {
+      this.source.close();
+      this.source = null;
+    }
     if (this.ws) {
       this.ws.onclose = null;
       this.ws.close();

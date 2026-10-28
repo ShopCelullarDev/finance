@@ -103,7 +103,7 @@ export interface PredictiveSignal {
   entry_price: number;
   stop_loss: number;
   take_profit: number;
-  trigger_factors: TriggerFactors;
+  trigger_factors?: TriggerFactors;
   status: 'ACTIVE' | 'EXPIRED' | 'TARGET_REACHED' | 'STOPPED_OUT';
   created_at: string;
 }

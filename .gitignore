@@ -5,7 +5,9 @@
 *.pem
 *.key
 id_rsa*
+deploy cwp finance
 GitHub
+Github Finance
 *.dump
 *.sql.gz
 

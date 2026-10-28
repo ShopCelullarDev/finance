@@ -15,6 +15,16 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: "/api/:path*", destination: "http://127.0.0.1:8000/api/:path*" },
+        { source: "/health", destination: "http://127.0.0.1:8000/health" },
+        { source: "/robots.txt", destination: "http://127.0.0.1:8000/robots.txt" },
+        { source: "/ws/:path*", destination: "http://127.0.0.1:8000/ws/:path*" },
+      ],
+    };
+  },
   async headers() {
     return [
       {

@@ -13,7 +13,17 @@ import {
   Time,
 } from 'lightweight-charts';
 import { CandleData, PredictiveSignal } from '@/types/market';
+import { fetchKlines } from '@/services/api';
 import { Layers } from 'lucide-react';
+
+function intervalSeconds(timeframe: string): number {
+  if (timeframe === '1m') return 60;
+  if (timeframe === '5m') return 300;
+  if (timeframe === '15m') return 900;
+  if (timeframe === '1h') return 3600;
+  if (timeframe === '4h') return 14400;
+  return 86400;
+}
 
 interface TradingViewChartProps {
   symbol: string;
@@ -40,42 +50,10 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
   const tpLineRef = useRef<IPriceLine | null>(null);
 
   const [overlaySignals, setOverlaySignals] = useState(true);
+  const [candleNote, setCandleNote] = useState<string | null>('Cargando velas de Binance…');
+  const lastCandleRef = useRef<CandleData | null>(null);
 
   const timeframes = ['1m', '5m', '15m', '1h', '4h', '1d'];
-
-  // Generador determinístico de velas iniciales según el activo
-  const generateInitialData = (basePrice: number): { candles: CandleData[]; volumes: any[] } => {
-    const candles: CandleData[] = [];
-    const volumes: any[] = [];
-    const now = Math.floor(Date.now() / 1000);
-    const intervalSecs = timeframe === '1m' ? 60 : timeframe === '5m' ? 300 : timeframe === '15m' ? 900 : timeframe === '1h' ? 3600 : timeframe === '4h' ? 14400 : 86400;
-
-    const count = 120;
-    let price = basePrice * 0.94;
-
-    for (let i = count; i >= 0; i--) {
-      const time = (now - i * intervalSecs) as Time;
-      const step = ((i * 19) % 29) / 100 - 0.14; // Fluctuación determinista
-      const volatility = basePrice * 0.0025;
-      const open = price;
-      const delta = step * volatility;
-      const close = Math.max(1, open + delta);
-      const high = Math.max(open, close) + (((i * 7) % 11) / 10) * volatility * 0.4;
-      const low = Math.min(open, close) - (((i * 13) % 11) / 10) * volatility * 0.4;
-      const volume = 20 + ((i * 31) % 65);
-
-      candles.push({ time: time as any, open, high, low, close, volume });
-      volumes.push({
-        time: time as any,
-        value: volume,
-        color: close >= open ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)',
-      });
-
-      price = close;
-    }
-
-    return { candles, volumes };
-  };
 
   // Inicializar Gráfico con ResizeObserver robusto
   useEffect(() => {
@@ -143,22 +121,41 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
     });
     candleSeriesRef.current = candlestickSeries;
 
-    // Cargar datos de velas inmediatamente
-    const refPrice = currentPrice || (symbol === 'BTC/USDT' ? 82450 : symbol === 'ETH/USDT' ? 2450 : symbol === 'SOL/USDT' ? 145 : 100);
-    const { candles, volumes } = generateInitialData(refPrice);
-    candlestickSeries.setData(candles as any);
-
-    // Serie de Volumen protegida
     try {
       const volumeSeries = chart.addSeries(HistogramSeries, {
         priceFormat: { type: 'volume' },
         priceScaleId: '',
       });
-      volumeSeries.setData(volumes as any);
       volumeSeriesRef.current = volumeSeries;
     } catch (e) {
       console.warn('[TradingViewChart] Fallback para histograma de volumen:', e);
     }
+
+    setCandleNote('Cargando velas de Binance…');
+    let cancelled = false;
+    const paint = (candles: CandleData[]) => {
+      if (cancelled || !candleSeriesRef.current) return;
+      candleSeriesRef.current.setData(candles as never);
+      lastCandleRef.current = candles.length > 0 ? candles[candles.length - 1] : null;
+      setCandleNote(candles.length > 0 ? null : 'Sin velas en vivo para este símbolo.');
+      volumeSeriesRef.current?.setData(
+        candles.map((candle) => ({
+          time: candle.time as Time,
+          value: candle.volume || 0,
+          color: candle.close >= candle.open ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)',
+        })) as never
+      );
+      try {
+        chart.timeScale().fitContent();
+      } catch {}
+    };
+    const loadCandles = () => {
+      fetchKlines(symbol, timeframe).then(paint).catch(() => {
+        if (!cancelled) setCandleNote('Binance no entregó las velas.');
+      });
+    };
+    loadCandles();
+    const refresh = window.setInterval(loadCandles, 15000);
 
     // Ajustar velas a la pantalla
     try {
@@ -177,6 +174,8 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
     resizeObserver.observe(container);
 
     return () => {
+      cancelled = true;
+      window.clearInterval(refresh);
       resizeObserver.disconnect();
       if (chartRef.current) {
         chartRef.current.remove();
@@ -189,21 +188,31 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
   useEffect(() => {
     if (!candleSeriesRef.current || !currentPrice) return;
 
-    const now = Math.floor(Date.now() / 1000);
-    const lastBar = {
-      time: now as any,
-      open: currentPrice * 0.9998,
-      high: currentPrice * 1.0003,
-      low: currentPrice * 0.9995,
-      close: currentPrice,
-    };
-
+    const last = lastCandleRef.current;
+    if (!last) return;
+    const bucket = Math.floor(Date.now() / 1000 / intervalSeconds(timeframe)) * intervalSeconds(timeframe);
+    const next: CandleData = bucket === last.time
+      ? {
+          ...last,
+          close: currentPrice,
+          high: Math.max(last.high, currentPrice),
+          low: Math.min(last.low, currentPrice),
+        }
+      : {
+          time: bucket,
+          open: currentPrice,
+          high: currentPrice,
+          low: currentPrice,
+          close: currentPrice,
+          volume: 0,
+        };
+    lastCandleRef.current = next;
     try {
-      candleSeriesRef.current.update(lastBar);
+      candleSeriesRef.current.update(next as never);
     } catch {
-      // Ignorar superposición de timestamps
+      // La vela nueva llega en el siguiente refresco de Binance.
     }
-  }, [currentPrice]);
+  }, [currentPrice, timeframe]);
 
   // Renderizar o actualizar líneas de Señal Predictiva (Entry, SL, TP)
   useEffect(() => {
@@ -329,6 +338,11 @@ export const TradingViewChart: React.FC<TradingViewChartProps> = ({
       {/* Chart Canvas */}
       <div className="relative flex-1 w-full min-h-[420px] h-[440px]">
         <div ref={chartContainerRef} className="w-full h-full" />
+        {candleNote && (
+          <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500">
+            {candleNote}
+          </div>
+        )}
 
         {/* Signal Overlay Banner if active */}
         {overlaySignals && activeSignal && (

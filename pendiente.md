@@ -186,7 +186,22 @@ Sesión pausada el 2026-10-26 17:17. Mañana: aplicar `database/init/06_paper_ac
   - [x] Exigir `get_current_user` en paper, signals, news, telemetry, backtest y assets.
   - [x] Quitar precios de respaldo en `_resolve_latest_price`. Sin tick, la orden no se abre.
   - [x] Quitar fuentes ONLINE ficticias de `telemetry.py`.
-  - [/] `account_type` está en `05_paper_trading.sql` y en `06_paper_account_type.sql`. Falta aplicarlo: no había Postgres ni Docker en marcha. La UI ya llama al segundo libro «libro B» y aclara que no sale a un exchange.
+  - [/] `account_type` está en `05_paper_trading.sql` y en `06_paper_account_type.sql`. En el VPS el instalador ya lo aplicó. En local sigue sin Postgres. La UI ya llama al segundo libro «libro B» y aclara que no sale a un exchange.
+
+## Despliegue CWP finance (2026-10-27)
+
+- [/] **Stack en el VPS y proxy HTTP** `Prioridad: Alta` `Agente: devops-security-agent`
+  - [x] Postgres 16.4, TimescaleDB y Redis en /home/finance/market.
+  - [x] API en 127.0.0.1:8000 con /health en ok.
+  - [x] Terminal Next en 127.0.0.1:3000. El binario nativo de Next pide glibc 2.29; Alma 8 tiene 2.28, así que arranca con WASM.
+  - [x] DNS A de finance.cex-ve.xyz a 149.56.94.139, nube gris.
+  - [x] Vhost del puerto 80 en proxy a 127.0.0.1:3000. `http://finance.cex-ve.xyz/login` es la terminal.
+  - [x] El puerto 443 también entrega la terminal. Next reenvía /api, /health y /robots.txt al puerto 8000.
+  - [x] Canal en vivo por GET /api/v1/stream/live. El ticker de Binance llega con precio y variación de 24 h.
+  - [x] Velas y libro de BTC/ETH/SOL salen de Binance. La pantalla ya no usa la muestra del 20 de octubre.
+  - [ ] Noticias, sentimiento macro y la señal automática por barra. Hoy esos paneles se quedan vacíos si no hay una lectura real.
+  - [ ] Certificado Let's Encrypt de finance.cex-ve.xyz. El HTTPS sigue presentando el certificado de vps.alphagus.com.
+  - [ ] Subir nofile/nproc de la sesión SSH. El cron ya no hereda ese límite; el 503 del 28 de octubre fue por procesos colgados del vigilador, no por el proxy.
 - [ ] **8.2 Brief de solo lectura para el agente** `Prioridad: Alta` `Agente: backend-fastapi-agent`
   - [ ] `GET /api/v1/agent/brief` compacto: precio real o ausencia, señal, régimen, factores, posiciones y estado del dispatcher.
   - [ ] API key o scope de solo lectura, distinto del permiso de ejecución.

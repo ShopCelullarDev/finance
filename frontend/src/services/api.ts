@@ -15,15 +15,7 @@ import {
   OrderDispatcherConfig,
 } from '@/types/market';
 import { authService } from '@/services/auth';
-
-
-const getApiBase = () => {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname || '127.0.0.1';
-    return `http://${host}:8000`;
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-};
+import { getApiBase } from '@/services/origin';
 
 function withAuth(init: RequestInit = {}): RequestInit {
   const headers = new Headers(init.headers);
@@ -56,36 +48,29 @@ export function normalizeSignal(raw: any): PredictiveSignal {
 
   const confidence = typeof raw.confidence_score === 'number'
     ? raw.confidence_score
-    : parseFloat(raw.confidence_score || '75.0');
+    : parseFloat(raw.confidence_score);
   const entry = typeof raw.entry_price === 'number'
     ? raw.entry_price
-    : parseFloat(raw.entry_price || '82450.0');
+    : parseFloat(raw.entry_price);
   const sl = typeof raw.stop_loss === 'number'
     ? raw.stop_loss
-    : parseFloat(raw.stop_loss || (entry * 0.98).toString());
+    : parseFloat(raw.stop_loss);
   const tp = typeof raw.take_profit === 'number'
     ? raw.take_profit
-    : parseFloat(raw.take_profit || (entry * 1.044).toString());
+    : parseFloat(raw.take_profit);
 
   return {
     id: String(raw.id || `sig-${Date.now()}`),
     symbol,
     timeframe: raw.timeframe || '5m',
     action,
-    confidence_score: isNaN(confidence) ? 75.0 : confidence,
-    entry_price: isNaN(entry) ? 82450.0 : entry,
-    stop_loss: isNaN(sl) ? 80800.0 : sl,
-    take_profit: isNaN(tp) ? 86050.0 : tp,
+    confidence_score: Number.isFinite(confidence) ? confidence : 0,
+    entry_price: Number.isFinite(entry) ? entry : 0,
+    stop_loss: Number.isFinite(sl) ? sl : 0,
+    take_profit: Number.isFinite(tp) ? tp : 0,
     status: raw.status || 'ACTIVE',
     created_at: raw.generated_at || raw.created_at || new Date().toISOString(),
-    trigger_factors: raw.trigger_factors || {
-      nlp_sentiment: { score: 0.35, label: 'BULLISH', weight: 0.40, contribution: 0.14 },
-      price_momentum: { change_pct: 1.2, weight: 0.35, contribution: 0.12 },
-      macro_bias: { bias: 0.2, weight: 0.25, contribution: 0.05 },
-      total_composite_score: 0.31,
-      risk_reward_ratio: 2.2,
-      volatility_risk: 'MODERATE',
-    },
+    trigger_factors: raw.trigger_factors,
   };
 }
 
@@ -395,6 +380,37 @@ export async function startDispatcher(): Promise<OrderDispatcherStatus> {
   });
   if (!res.ok) throw new Error(`Error iniciando despachador: ${res.statusText}`);
   return await res.json();
+}
+
+export interface LiveCandle {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface DepthLevel {
+  price: number;
+  size: number;
+}
+
+export async function fetchKlines(symbol: string, interval: string): Promise<LiveCandle[]> {
+  const params = new URLSearchParams({ symbol, interval, limit: '200' });
+  const res = await apiFetch(`${getApiBase()}/api/v1/market/klines?${params}`, { cache: 'no-store' });
+  if (!res.ok) return [];
+  const body = await res.json();
+  return Array.isArray(body.candles) ? body.candles : [];
+}
+
+export async function fetchDepth(symbol: string): Promise<{ bids: DepthLevel[]; asks: DepthLevel[] } | null> {
+  const params = new URLSearchParams({ symbol, limit: '10' });
+  const res = await apiFetch(`${getApiBase()}/api/v1/market/depth?${params}`, { cache: 'no-store' });
+  if (!res.ok) return null;
+  const body = await res.json();
+  if (!Array.isArray(body.bids) || !Array.isArray(body.asks)) return null;
+  return { bids: body.bids, asks: body.asks };
 }
 
 export async function stopDispatcher(): Promise<OrderDispatcherStatus> {

@@ -30,103 +30,11 @@ export default function Home() {
   const [isGlobalConfigOpen, setIsGlobalConfigOpen] = useState<boolean>(false);
   const [dispatcherStatus, setDispatcherStatus] = useState<OrderDispatcherStatus | null>(null);
 
-  // Market ticks map for tickers
-  const [ticks, setTicks] = useState<Record<string, MarketTick>>({
-    'BTC/USDT': { symbol: 'BTC/USDT', price: 82450.50, change_24h: 3.45, source: 'binance', timestamp: '2026-10-20T12:00:00Z' },
-    'ETH/USDT': { symbol: 'ETH/USDT', price: 2465.80, change_24h: -1.15, source: 'binance', timestamp: '2026-10-20T12:00:00Z' },
-    'SOL/USDT': { symbol: 'SOL/USDT', price: 148.20, change_24h: 5.80, source: 'binance', timestamp: '2026-10-20T12:00:00Z' },
-    'DXY': { symbol: 'DXY', price: 104.120, change_24h: -0.22, source: 'fred', timestamp: '2026-10-20T12:00:00Z' },
-    'SP500': { symbol: 'SP500', price: 5864.50, change_24h: 0.85, source: 'macro', timestamp: '2026-10-20T12:00:00Z' },
-    'GLD': { symbol: 'GLD', price: 251.40, change_24h: 0.42, source: 'macro', timestamp: '2026-10-20T12:00:00Z' },
-    'USO': { symbol: 'USO', price: 74.30, change_24h: -1.80, source: 'macro', timestamp: '2026-10-20T12:00:00Z' },
-  });
-
-  const [signals, setSignals] = useState<PredictiveSignal[]>([
-    {
-      id: 'sig-btc-001',
-      symbol: 'BTC/USDT',
-      timeframe: '5m',
-      action: 'BUY',
-      confidence_score: 82.4,
-      entry_price: 82450.50,
-      stop_loss: 80801.49,
-      take_profit: 86078.32,
-      status: 'ACTIVE',
-      created_at: '2026-10-20T12:00:00Z',
-      trigger_factors: {
-        nlp_sentiment: { score: 0.65, label: 'VERY_BULLISH', weight: 0.40, contribution: 0.26 },
-        price_momentum: { change_pct: 1.85, weight: 0.35, contribution: 0.18 },
-        macro_bias: { bias: 0.30, weight: 0.25, contribution: 0.075 },
-        total_composite_score: 0.515,
-        risk_reward_ratio: 2.2,
-        volatility_risk: 'MODERATE',
-      },
-    },
-    {
-      id: 'sig-eth-002',
-      symbol: 'ETH/USDT',
-      timeframe: '15m',
-      action: 'HOLD',
-      confidence_score: 54.0,
-      entry_price: 2465.80,
-      stop_loss: 2416.48,
-      take_profit: 2574.30,
-      status: 'ACTIVE',
-      created_at: '2026-10-20T11:00:00Z',
-      trigger_factors: {
-        nlp_sentiment: { score: 0.05, label: 'NEUTRAL', weight: 0.40, contribution: 0.02 },
-        price_momentum: { change_pct: -0.45, weight: 0.35, contribution: -0.04 },
-        macro_bias: { bias: 0.10, weight: 0.25, contribution: 0.025 },
-        total_composite_score: 0.005,
-        risk_reward_ratio: 2.2,
-        volatility_risk: 'LOW',
-      },
-    },
-    {
-      id: 'sig-sol-003',
-      symbol: 'SOL/USDT',
-      timeframe: '5m',
-      action: 'STRONG_BUY',
-      confidence_score: 89.2,
-      entry_price: 148.20,
-      stop_loss: 143.75,
-      take_profit: 157.99,
-      status: 'ACTIVE',
-      created_at: '2026-10-20T11:30:00Z',
-      trigger_factors: {
-        nlp_sentiment: { score: 0.82, label: 'VERY_BULLISH', weight: 0.40, contribution: 0.328 },
-        price_momentum: { change_pct: 3.40, weight: 0.35, contribution: 0.238 },
-        macro_bias: { bias: 0.35, weight: 0.25, contribution: 0.087 },
-        total_composite_score: 0.653,
-        risk_reward_ratio: 2.2,
-        volatility_risk: 'HIGH',
-      },
-    },
-  ]);
+  const [ticks, setTicks] = useState<Record<string, MarketTick>>({});
+  const [signals, setSignals] = useState<PredictiveSignal[]>([]);
 
   const [selectedSignalForModal, setSelectedSignalForModal] = useState<PredictiveSignal | null>(null);
-  const [news, setNews] = useState<NewsEvent[]>([
-    {
-      id: 'news-1',
-      title: 'SEC grants accelerated approval for multi-crypto spot index ETFs',
-      source: 'CoinDesk',
-      published_at: '2026-10-20T12:00:00Z',
-      sentiment_score: 0.88,
-      sentiment_label: 'VERY_BULLISH',
-      confidence: 0.94,
-      related_assets: ['BTC', 'ETH'],
-    },
-    {
-      id: 'news-2',
-      title: 'Federal Reserve hints at potential 25bps rate cut amid cooling inflation numbers',
-      source: 'Bloomberg Macro',
-      published_at: '2026-10-20T11:30:00Z',
-      sentiment_score: 0.62,
-      sentiment_label: 'BULLISH',
-      confidence: 0.89,
-      related_assets: ['DXY', 'SP500', 'BTC'],
-    },
-  ]);
+  const [news, setNews] = useState<NewsEvent[]>([]);
 
   const [telemetry, setTelemetry] = useState<SystemTelemetry | null>(null);
   const [isLoadingTelemetry, setIsLoadingTelemetry] = useState<boolean>(false);
@@ -146,20 +54,14 @@ export default function Home() {
         setDispatcherStatus(dispData);
       }
 
-      if (signalsData && signalsData.length > 0) {
-        setSignals((prev) => {
-          const map = new Map<string, PredictiveSignal>();
-          signalsData.forEach((s) => map.set(s.id, s));
-          prev.forEach((s) => {
-            if (!map.has(s.id)) map.set(s.id, s);
-          });
-          return Array.from(map.values());
-        });
-      }
-
-      if (newsData && newsData.length > 0) {
-        setNews(newsData);
-      }
+      const freshCutoff = Date.now() - 15 * 60 * 1000;
+      setSignals(
+        (signalsData || []).filter((item) => {
+          const stamp = new Date(item.created_at).getTime();
+          return Number.isFinite(stamp) && stamp >= freshCutoff;
+        })
+      );
+      setNews(newsData || []);
 
       if (telemetryData) {
         setTelemetry(telemetryData);
@@ -192,7 +94,7 @@ export default function Home() {
     ]);
 
     // Listener de Ticks en vivo
-    const unsubTicks = wsClient.on('tick', (msg) => {
+    const unsubTicks = wsClient.on('ticks', (msg) => {
       if (msg.data && msg.data.symbol) {
         const symbol = msg.data.symbol;
         setTicks((prev) => ({
@@ -203,14 +105,14 @@ export default function Home() {
             change_24h: msg.data.change_24h ?? prev[symbol]?.change_24h ?? 0,
             volume_24h: msg.data.volume_24h,
             source: msg.data.source || 'binance',
-            timestamp: msg.data.timestamp || new Date().toISOString(),
+            timestamp: msg.data.time || msg.data.timestamp || new Date().toISOString(),
           },
         }));
       }
     });
 
     // Listener de Señales Predictivas en vivo
-    const unsubSignals = wsClient.on('signal', (msg) => {
+    const unsubSignals = wsClient.on('signals', (msg) => {
       if (msg.data) {
         const norm = normalizeSignal(msg.data);
         setSignals((prev) => [norm, ...prev.filter((s) => s.id !== norm.id)]);
@@ -247,30 +149,7 @@ export default function Home() {
       setSignals((prev) => [newSignal, ...prev]);
       setSelectedSignalForModal(newSignal);
     } catch (e) {
-      console.warn('[AI Evaluation] Fallback local para evaluación:', e);
-      const currentP = ticks[selectedSymbol]?.price || 82450;
-      const synthSignal: PredictiveSignal = {
-        id: `sig-eval-${Date.now()}`,
-        symbol: selectedSymbol,
-        timeframe,
-        action: 'BUY',
-        confidence_score: 87.5,
-        entry_price: currentP,
-        stop_loss: currentP * 0.98,
-        take_profit: currentP * 1.044,
-        status: 'ACTIVE',
-        created_at: new Date().toISOString(),
-        trigger_factors: {
-          nlp_sentiment: { score: 0.72, label: 'VERY_BULLISH', weight: 0.40, contribution: 0.288 },
-          price_momentum: { change_pct: 2.10, weight: 0.35, contribution: 0.21 },
-          macro_bias: { bias: 0.40, weight: 0.25, contribution: 0.10 },
-          total_composite_score: 0.598,
-          risk_reward_ratio: 2.2,
-          volatility_risk: 'MODERATE',
-        },
-      };
-      setSignals((prev) => [synthSignal, ...prev]);
-      setSelectedSignalForModal(synthSignal);
+      console.warn('[AI Evaluation] La evaluación no devolvió una señal:', e);
     } finally {
       setIsEvaluatingAI(false);
     }
@@ -340,8 +219,11 @@ export default function Home() {
               {/* Bottom Row: Macro Sentiment & News Feed */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <MacroSentimentWidget
-                  nlpScore={0.48}
-                  fearGreedIndex={72}
+                  nlpScore={
+                    news.length > 0
+                      ? news.reduce((sum, item) => sum + (Number(item.sentiment_score) || 0), 0) / news.length
+                      : undefined
+                  }
                 />
                 <NewsFeedWidget news={news} />
               </div>

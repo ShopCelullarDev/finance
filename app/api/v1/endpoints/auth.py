@@ -22,6 +22,13 @@ from app.services.auth_service import AuthService
 router = APIRouter()
 
 
+def _cookie_secure(request: Request) -> bool:
+    """La cookie Secure solo viaja por HTTPS público. El salto interno a la API es HTTP."""
+    forwarded = request.headers.get("x-forwarded-proto", "")
+    proto = forwarded.split(",")[0].strip().lower() if forwarded else request.url.scheme
+    return proto == "https"
+
+
 def _get_client_ip(request: Request) -> str:
     """Extrae la dirección IP del cliente considerando posibles proxies reversos."""
     forwarded = request.headers.get("X-Forwarded-For")
@@ -58,12 +65,12 @@ async def login(
     await AuthService.store_refresh_token(user_id_str, refresh_token)
 
     # Configurar cookies seguras httpOnly
-    is_prod = settings.ENVIRONMENT == "production"
+    secure_cookie = _cookie_secure(request)
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=is_prod,
+        secure=secure_cookie,
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
@@ -72,7 +79,7 @@ async def login(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=is_prod,
+        secure=secure_cookie,
         samesite="lax",
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
         path="/",
@@ -163,12 +170,12 @@ async def refresh_token(
     new_refresh_token = create_refresh_token(subject=user_id_str)
     await AuthService.store_refresh_token(user_id_str, new_refresh_token)
 
-    is_prod = settings.ENVIRONMENT == "production"
+    secure_cookie = _cookie_secure(request)
     response.set_cookie(
         key="access_token",
         value=new_access_token,
         httponly=True,
-        secure=is_prod,
+        secure=secure_cookie,
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
@@ -177,7 +184,7 @@ async def refresh_token(
         key="refresh_token",
         value=new_refresh_token,
         httponly=True,
-        secure=is_prod,
+        secure=secure_cookie,
         samesite="lax",
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
         path="/",
@@ -194,6 +201,7 @@ async def refresh_token(
 
 @router.post("/logout", summary="Cerrar Sesión e Invalidar Tokens en Redis")
 async def logout(
+    request: Request,
     response: Response,
     body: Optional[RefreshTokenRequest] = None,
     refresh_token_cookie: Optional[str] = Cookie(None, alias="refresh_token"),
@@ -205,8 +213,9 @@ async def logout(
         await AuthService.revoke_refresh_token(str(current_user.id), token)
 
     # Limpiar cookies en el navegador
-    response.delete_cookie(key="access_token", path="/")
-    response.delete_cookie(key="refresh_token", path="/")
+    secure_cookie = _cookie_secure(request)
+    response.delete_cookie(key="access_token", path="/", secure=secure_cookie, httponly=True, samesite="lax")
+    response.delete_cookie(key="refresh_token", path="/", secure=secure_cookie, httponly=True, samesite="lax")
 
     return {"message": "Sesión cerrada correctamente y tokens invalidados."}
 

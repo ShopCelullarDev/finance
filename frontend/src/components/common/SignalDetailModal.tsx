@@ -90,7 +90,7 @@ export const SignalDetailModal: React.FC<SignalDetailModalProps> = ({ signal, on
             </div>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#1a2333] text-blue-300 border border-[#2b3a54]">
-                Régimen: <strong className="text-white">{tf?.market_regime ?? 'BALANCED_MARKET'}</strong>
+                Régimen: <strong className="text-white">{tf?.market_regime ?? 'sin lectura'}</strong>
               </span>
               {tf?.multi_timeframe && (
                 <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${

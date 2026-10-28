@@ -1,0 +1,12 @@
+[Unit]
+Description=Redis del motor predictivo (usuario CWP)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/market/redis/bin/redis-server %h/market/redis.conf
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

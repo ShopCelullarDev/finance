@@ -1,28 +1,31 @@
 # SEMILLA VIVA DE ESTADO (CHECKPOINT SEED)
 
-- FECHA_HORA: 2026-10-26T17:17:00-04:00
+- FECHA_HORA: 2026-10-28T07:20:00-04:00
 - AGENTE_MODELO: Grok 4.7
-- ROL_ACTIVO: backend-fastapi-agent
-- FASE_ACTUAL: Fase 8.1 - Cerrar la superficie antes de un agente
-- ID_TAREA_ACTUAL: 8.1
-- ESTADO_TAREA: PAUSADO
+- ROL_ACTIVO: devops-security-agent
+- FASE_ACTUAL: Despliegue en CWP finance
+- ID_TAREA_ACTUAL: DEPLOY-CWP
+- ESTADO_TAREA: EN_PROGRESO
 
 ## ULTIMA ACCION COMPLETADA
-Sesión cerrada para retomar mañana. El cierre 8.1 queda en git. Routers de assets, telemetry, signals, backtest, paper y news exigen sesión (401 sin token). Sin tick, la orden responde 409. Telemetría sin fuentes ficticias. UI: el segundo libro se llama libro B y no sale a un exchange. DDL listo y no aplicado: database/init/06_paper_account_type.sql. En este entorno no había Postgres ni Docker. /health sigue público. tsc del frontend pasó. La UI no se recorrió en el navegador.
+El 503 era la terminal caída. Node no podía crear hilos porque el vigilador se quedaba colgado y acumulaba procesos. Se soltaron esos procesos, Next volvió en el puerto 3000 y el login público responde 200. keep-alive.php ahora arranca el servicio y sale, sin esperar al proceso.
 
 ## ARCHIVOS MODIFICADOS RECIENTEMENTE
+- app/api/v1/endpoints/live_stream.py
+- app/api/v1/endpoints/market_data.py
+- app/api/v1/endpoints/auth.py
 - app/api/v1/router.py
-- app/api/v1/endpoints/paper_trading.py
-- app/api/v1/endpoints/telemetry.py
-- database/init/05_paper_trading.sql
-- database/init/06_paper_account_type.sql
-- frontend/src/services/api.ts
-- frontend/src/components/trading/PaperTradingDashboard.tsx
-- frontend/src/components/admin/TelemetryDashboard.tsx
-- scripts/test_support.py
+- app/services/ingestion/binance_ws.py
+- frontend/next.config.ts
+- frontend/src/services/origin.ts
+- frontend/src/services/websocket.ts
+- frontend/src/app/page.tsx
+- frontend/src/components/trading/TradingViewChart.tsx
+- frontend/src/components/trading/OrderbookWidget.tsx
+- deploy/cwp/keep-alive.php
 
 ## COMANDO DE VERIFICACION RAPIDA
-PYTHONPATH=. .venv/bin/python3 -c "import asyncio,httpx; from app.main import app; exec('async def m():\n t=httpx.ASGITransport(app=app)\n async with httpx.AsyncClient(transport=t, base_url=\"http://testserver\") as c:\n  print((await c.post(\"/api/v1/paper/account/reset\")).status_code)\nasyncio.run(m())')"
+curl -sk --resolve finance.cex-ve.xyz:443:149.56.94.139 -o /dev/null -w "%{http_code}\n" https://finance.cex-ve.xyz/login
 
 ## INSTRUCCION DE REANUDACION PARA EL PROXIMO AGENTE
-Retomar mañana desde aquí. No empezar el brief del agente ni un ejecutor. Si TimescaleDB está arriba, respaldar y aplicar database/init/06_paper_account_type.sql. Si el usuario pide seguir, el paso de producto es 8.2: GET /api/v1/agent/brief de solo lectura.
+No borrar pgdata ni reescribir ~/market/.env. No hacer source de ese .env. No commitear secretos ni la clave del panel. Apache entrega todo a Next en 127.0.0.1:3000; Next reenvía /api al puerto 8000. El único cron recurrente es keep-alive.php. No abrir el plan de latencia ni las fases 8.2 y 8.3 hasta que lo pidan. El escenario recomendado para tiempo real quedó en el canvas escenario-tiempo-real: un solo servidor con systemd, no la jaula CWP ni una laptop. No migrar hasta que lo pidan. Siguen pendientes el certificado de finance.cex-ve.xyz y los límites nproc/nofile del SSH.

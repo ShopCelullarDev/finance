@@ -6,6 +6,125 @@ Este documento registra cronológicamente los avances, eventos técnicos, acuerd
 
 ## Registro de Actividades
 
+### [2026-10-28 07:20] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Despliegue en CWP finance
+- **Acción:** Se comparó CWP, una PC local y un servidor propio para el canal en vivo. La recomendación es un solo servidor siempre encendido con systemd. No se migró nada.
+- **Archivos Afectados:** semilla.md, bitacora.md
+- **Estado:** EN_PROGRESO
+- **Verificación:** El criterio usa las caídas ya vistas: socket sin upgrade, 503 del 28 de octubre y Binance solo por el puerto 443.
+
+### [2026-10-28 07:16] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Despliegue en CWP finance
+- **Acción:** Se levantó la terminal. El 503 venía de Apache porque el puerto 3000 no respondía: Node abortaba al crear hilos y keep-alive.php no terminaba, así que cada cinco minutos sumaba otro proceso.
+- **Archivos Afectados:** deploy/cwp/keep-alive.php, semilla.md, bitacora.md
+- **Estado:** EN_PROGRESO
+- **Verificación:** En el servidor, http://127.0.0.1:3000/login respondió 200 y https://finance.cex-ve.xyz/login también. La API en el puerto 8000 seguía en marcha.
+
+### [2026-10-27 17:28] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Despliegue en CWP finance
+- **Acción:** Se guardó el punto de reanudación. La terminal pública ya sirve precio, velas y libro en vivo. El árbol local sigue sin commit.
+- **Archivos Afectados:** semilla.md, bitacora.md, pendiente.md
+- **Estado:** EN_PROGRESO
+- **Verificación:** semilla.md queda por debajo de 50 líneas y apunta a /login, al canal /api/v1/stream/live y a /api/v1/market/klines.
+
+### [2026-10-27 17:25] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Despliegue en CWP finance
+- **Acción:** Se quitó la muestra del 20 de octubre. Velas y libro salen de Binance; la cinta solo muestra BTC, ETH y SOL en vivo. Sin noticia o señal reciente, esos paneles quedan vacíos.
+- **Archivos Afectados:** app/api/v1/endpoints/market_data.py, app/api/v1/router.py, frontend/src/app/page.tsx, frontend/src/services/api.ts, frontend/src/components/trading/TradingViewChart.tsx, frontend/src/components/trading/OrderbookWidget.tsx, frontend/src/components/trading/MacroSentimentWidget.tsx, frontend/src/components/common/TickerTape.tsx, semilla.md, bitacora.md
+- **Estado:** EN_PROGRESO
+- **Verificación:** Con sesión, /api/v1/market/klines devolvió velas de 5m de BTC y /api/v1/market/depth el libro (mejor bid 80666.93). El JavaScript público ya no contiene el precio de muestra.
+
+### [2026-10-27 17:10] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Despliegue en CWP finance
+- **Acción:** El canal en vivo pasa a SSE en /api/v1/stream/live porque Apache no abre el WebSocket. La terminal escucha ticks y signals, y el aviso conectado dice LIVE.
+- **Archivos Afectados:** app/api/v1/endpoints/live_stream.py, app/api/v1/router.py, app/services/ingestion/binance_ws.py, frontend/src/services/websocket.ts, frontend/src/app/page.tsx, frontend/src/components/common/Header.tsx, semilla.md, bitacora.md, pendiente.md
+- **Estado:** EN_PROGRESO
+- **Verificación:** Con la sesión del admin, el canal devolvió connection_established y ticks de Binance: BTC 80797.12, ETH 2345.03, SOL 101.04, con variación de 24 h. La página pública incluye el bundle nuevo. La señal y la noticia de muestra no se sustituyen hasta que exista una fila real.
+
+### [2026-10-27 15:58] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Despliegue en CWP finance
+- **Acción:** Next reenvía /api, /health y /ws al puerto 8000. La cookie de sesión sigue el protocolo público.
+- **Archivos Afectados:** frontend/next.config.ts, frontend/.next/routes-manifest.json, app/api/v1/endpoints/auth.py, semilla.md, bitacora.md
+- **Estado:** EN_PROGRESO
+- **Verificación:** POST público a /api/v1/auth/login con clave inválida responde 401 JSON de uvicorn. Con la clave del admin responde 200 y deja las cookies access_token y refresh_token.
+
+### [2026-10-27 15:18] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Propuesta de optimización
+- **Acción:** Se propuso cerrar el ciclo precio, barra de 1 minuto, señal y pantalla. No se modificó código de ejecución.
+- **Archivos Afectados:** semilla.md, bitacora.md
+- **Estado:** EN_PROGRESO
+- **Verificación:** La propuesta queda en el mismo plan. Sigue sin ejecutarse.
+
+### [2026-10-27 15:12] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Plan de auditoría, latencia y precisión
+- **Acción:** Se dejó el plan en cuatro fases. No se cambió la lógica de las APIs.
+- **Archivos Afectados:** semilla.md, bitacora.md
+- **Estado:** EN_PROGRESO
+- **Verificación:** El código publica el ticker de Binance al llegar, guarda el tick como máximo cada 1 s, espera hasta 1 s en el WebSocket y sondea el libro cada 4 s. La señal solo nace en POST /signals.
+
+### [2026-10-27 14:53] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Despliegue en CWP finance
+- **Acción:** Se creó el usuario admin de la terminal en el VPS. La clave no queda en el repositorio. Redis estaba en MISCONF y no aceptaba escrituras; se permitió continuar sin el snapshot para que el login pueda guardar la sesión.
+- **Archivos Afectados:** deploy/cwp/keep-alive.php, deploy/cwp/install-userspace.sh, semilla.md, bitacora.md
+- **Estado:** EN_PROGRESO
+- **Verificación:** POST a 127.0.0.1:8000/api/v1/auth/login respondió 200 con rol admin. El mismo POST en http://finance.cex-ve.xyz/api/v1/auth/login responde 404 de Next, porque el proxy público manda todo al puerto 3000.
+
+### [2026-10-27 12:56] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Despliegue en CWP finance
+- **Acción:** Tras guardar el proxy a 127.0.0.1:3000 con rebuild, el puerto 80 ya entrega la terminal. El 443 sigue en el vhost SSL por defecto (certificado de vps.alphagus.com y página de prueba).
+- **Archivos Afectados:** semilla.md, pendiente.md, bitacora.md
+- **Estado:** EN_PROGRESO
+- **Verificación:** `http://finance.cex-ve.xyz/login` responde 200, `X-Powered-By: Next.js` y título «Motor Predictivo | Terminal Privada». `https://finance.cex-ve.xyz/` sigue en la página de prueba de CWP. El certificado TLS tiene CN y SAN solo `vps.alphagus.com`.
+
+### [2026-10-27 12:05] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Despliegue en CWP finance
+- **Acción:** Cron cada cinco minutos para volver a levantar Postgres, Redis, la API y la terminal si se caen. El stream de Binance pasa al puerto 443 porque el 9443 responde connection refused desde el VPS.
+- **Archivos Afectados:** deploy/cwp/keep-alive.php, app/services/ingestion/binance_ws.py
+- **Estado:** EN_PROGRESO
+- **Verificación:** El 9443 responde connection refused y el 443 abre. Tras reiniciar, /health queda en ok con la base conectada y el log dice «Conexión WebSocket establecida con éxito». El cron de keep-alive quedó activo.
+
+### [2026-10-27 11:53] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Despliegue en CWP finance
+- **Acción:** Instalación en el home de finance. Postgres 16.4 compilado, TimescaleDB, Redis, Python 3.12 y la terminal. La API y la web quedaron escuchando en localhost.
+- **Archivos Afectados:** deploy/cwp/install-userspace.sh, semilla.md, bitacora.md, pendiente.md
+- **Estado:** EN_PROGRESO
+- **Verificación:** GET http://127.0.0.1:8000/health responde status ok, con base y Redis conectados. GET http://127.0.0.1:3000/login responde 200. El proxy Apache no está aplicado y finance.cex-ve.xyz sigue en Cloudflare.
+
+### [2026-10-27 09:55] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Preparar el motor para CWP sin root
+- **Acción:** El navegador puede usar el mismo dominio. Quedó el instalador de usuario para TimescaleDB, Redis y Python 3.12, más las unidades systemd y el proxy Apache.
+- **Archivos Afectados:** frontend/src/services/origin.ts, frontend/src/services/api.ts, frontend/src/services/auth.ts, frontend/src/services/websocket.ts, .env.example, deploy/cwp/
+- **Estado:** COMPLETADO
+- **Verificación:** bash -n de los scripts y tsc --noEmit del frontend sin errores. El instalador no se ejecutó en el VPS.
+
+### [2026-10-27 09:45] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Despliegue en CWP finance
+- **Acción:** Inventario del servidor antes de copiar el proyecto. Despliegue detenido.
+- **Archivos Afectados:** semilla.md, bitacora.md
+- **Estado:** BLOQUEADO
+- **Verificación:** finance no tiene sudo ni Docker. No hay Postgres en 5432 ni Redis en 6379. Python 3.6.8. Node v24.21.0. MariaDB en 3306. 29 GB libres en /home. public_html con el index por defecto de CWP.
+
+### [2026-10-27 09:22] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Acceso SSH del panel CWP finance
+- **Acción:** Nueva prueba tras poner la IP de salida en lista blanca.
+- **Archivos Afectados:** semilla.md, bitacora.md
+- **Estado:** COMPLETADO
+- **Verificación:** 4360, 2082 y 2083 conectan. El 22 devuelve connection refused. Login SSH como finance en vps.alphagus.com, directorio /home/finance.
+
+### [2026-10-27 09:10] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Acceso SSH del panel CWP finance
+- **Acción:** Segunda prueba de SSH, ahora al puerto 4360.
+- **Archivos Afectados:** semilla.md, bitacora.md
+- **Estado:** BLOQUEADO
+- **Verificación:** nc y ssh -p 4360 a 149.56.94.139 terminan en TIMEOUT. No hubo handshake ni petición de contraseña.
+
+### [2026-10-27 09:00] - Grok 4.7 - devops-security-agent
+- **Fase / Tarea:** Acceso SSH del panel CWP finance
+- **Acción:** Lectura del fichero local de despliegue y prueba de conectividad. SSH y puertos del panel no responden desde esta máquina. El fichero queda en .gitignore.
+- **Archivos Afectados:** .gitignore, semilla.md, bitacora.md
+- **Estado:** BLOQUEADO
+- **Verificación:** nc a 149.56.94.139 en 22, 2082, 2083, 2030 y 2031 termina en TIMEOUT. ssh -F /dev/null a finance@149.56.94.139:22 termina en Connection timed out. vps.alphagus.com apunta a esa IP. finance.cex-ve.xyz apunta a Cloudflare.
+
 ### [2026-10-26 17:17] - Grok 4.7 - backend-fastapi-agent
 - **Fase / Tarea:** Fase 8.1 - Pausa de sesión
 - **Acción:** Checkpoint para retomar mañana. Semilla, pendiente y estado del proyecto alineados. El código de cierre de API queda guardado; la migración 06 no se ejecutó.

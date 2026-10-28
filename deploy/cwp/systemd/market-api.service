@@ -1,0 +1,15 @@
+[Unit]
+Description=API FastAPI del motor predictivo
+After=market-postgres.service market-redis.service
+Requires=market-postgres.service market-redis.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/market/src
+EnvironmentFile=%h/market/.env
+ExecStart=%h/market/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

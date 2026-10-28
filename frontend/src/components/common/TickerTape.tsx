@@ -15,7 +15,7 @@ export const TickerTape: React.FC<TickerTapeProps> = ({
   selectedSymbol,
   onSelectSymbol,
 }) => {
-  const symbols = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'DXY', 'SP500', 'GLD', 'USO'];
+  const symbols = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT'];
 
   const formatPrice = (symbol: string, price?: number) => {
     if (price === undefined || price === null) return '--.--';
@@ -36,10 +36,11 @@ export const TickerTape: React.FC<TickerTapeProps> = ({
         {symbols.map((symbol) => {
           const tick = ticks[symbol];
           const price = tick?.price;
-          const change = tick?.change_24h ?? 0;
+          const hasTick = price !== undefined && Number.isFinite(price);
+          const change = hasTick ? tick?.change_24h : undefined;
           const isSelected = selectedSymbol === symbol;
-          const isPositive = change > 0;
-          const isNegative = change < 0;
+          const isPositive = (change ?? 0) > 0;
+          const isNegative = (change ?? 0) < 0;
 
           return (
             <button
@@ -75,8 +76,7 @@ export const TickerTape: React.FC<TickerTapeProps> = ({
                 ) : (
                   <Minus className="h-3 w-3 mr-0.5 inline" />
                 )}
-                {isPositive ? '+' : ''}
-                {change.toFixed(2)}%
+                {change === undefined ? '--' : `${isPositive ? '+' : ''}${change.toFixed(2)}%`}
               </span>
             </button>
           );

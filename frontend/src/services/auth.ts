@@ -1,12 +1,5 @@
 import { AuthResponse, User } from '@/types/market';
-
-const getApiBase = () => {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname || '127.0.0.1';
-    return `http://${host}:8000`;
-  }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-};
+import { getApiBase } from '@/services/origin';
 
 class AuthService {
   private inMemoryToken: string | null = null;

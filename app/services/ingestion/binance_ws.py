@@ -39,7 +39,8 @@ class BinanceWSConnector(BaseConnector):
 
     def _build_stream_url(self) -> str:
         streams = [f"{sym.lower()}@ticker" for sym in self.symbols_map.keys()]
-        return f"wss://stream.binance.com:9443/stream?streams={'/'.join(streams)}"
+        # El 9443 sale rechazado desde el VPS. El 443 es el mismo stream y sí conecta.
+        return f"wss://stream.binance.com:443/stream?streams={'/'.join(streams)}"
 
     async def start(self) -> None:
         """Inicia la tarea en segundo plano que mantiene la conexión WebSocket."""
@@ -110,6 +111,8 @@ class BinanceWSConnector(BaseConnector):
             event_time = datetime.fromtimestamp(event_time_ms / 1000.0, tz=timezone.utc)
 
             price = Decimal(str(data.get("c", "0")))
+            change_raw = data.get("P")
+            change_24h = float(change_raw) if change_raw not in (None, "") else None
             volume_24h = Decimal(str(data.get("v", "0"))) if data.get("v") else None
 
             best_bid = Decimal(str(data.get("b", "0"))) if data.get("b") else None
@@ -137,6 +140,7 @@ class BinanceWSConnector(BaseConnector):
                     "asset_id": asset_id,
                     "source": "BINANCE",
                     "price": float(price),
+                    "change_24h": change_24h,
                     "volume_24h": float(volume_24h) if volume_24h else None,
                     "bid_ask_spread": float(spread) if spread else None,
                     "time": event_time.isoformat(),

@@ -72,7 +72,7 @@ export const NewsFeedWidget: React.FC<NewsFeedWidgetProps> = ({ news }) => {
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#242f42] bg-[#0f141d]">
         <div className="flex items-center gap-2">
           <Newspaper className="h-4 w-4 text-blue-400" />
-          <h4 className="text-xs font-bold text-slate-100">Feed de Noticias & NLP en Tiempo Real</h4>
+          <h4 className="text-xs font-bold text-slate-100">Noticias</h4>
         </div>
         <span className="text-[10px] text-slate-400 font-mono">Vector 3 (FinBERT)</span>
       </div>
@@ -80,7 +80,7 @@ export const NewsFeedWidget: React.FC<NewsFeedWidgetProps> = ({ news }) => {
       {/* List */}
       <div className="p-3 space-y-2.5 max-h-80 overflow-y-auto divide-y divide-[#242f42]/40 scrollbar-thin">
         {news.length === 0 ? (
-          <p className="text-xs text-slate-500 text-center py-4">Esperando noticias entrantes...</p>
+          <p className="text-xs text-slate-500 text-center py-4">No hay noticias en vivo.</p>
         ) : (
           news.map((item) => (
             <div key={item.id} className="pt-2.5 first:pt-0">

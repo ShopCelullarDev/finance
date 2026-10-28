@@ -95,7 +95,7 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
             <AlertCircle className="h-8 w-8 text-slate-500 mb-2 opacity-60" />
             <p className="text-xs font-medium">No hay señales con el filtro actual</p>
             <p className="text-[10px] text-slate-500 mt-1">
-              Las señales se generan automáticamente al procesar nuevos ticks y noticias.
+              No hay una señal calculada sobre el precio de ahora.
             </p>
           </div>
         ) : (
@@ -104,10 +104,10 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
             const action = signal.action || 'HOLD';
             const isBuy = action.includes('BUY');
             const isSell = action.includes('SELL');
-            const conf = Number(signal.confidence_score) || 75.0;
-            const entryPrice = Number(signal.entry_price) || 82450;
-            const stopLoss = Number(signal.stop_loss) || entryPrice * 0.98;
-            const takeProfit = Number(signal.take_profit) || entryPrice * 1.044;
+            const conf = Number(signal.confidence_score);
+            const entryPrice = Number(signal.entry_price);
+            const stopLoss = Number(signal.stop_loss);
+            const takeProfit = Number(signal.take_profit);
 
             return (
               <div
@@ -132,7 +132,7 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
                   <div className="flex justify-between text-[11px] mb-1">
                     <span className="text-slate-400">Confianza Algorítmica</span>
                     <span className="font-mono tabular-nums font-bold text-slate-200">
-                      {conf.toFixed(1)}%
+                      {Number.isFinite(conf) ? `${conf.toFixed(1)}%` : '--'}
                     </span>
                   </div>
                   <div className="h-1.5 w-full bg-[#0b0e14] rounded-full overflow-hidden">
@@ -140,7 +140,7 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
                       className={`h-full rounded-full transition-all duration-500 ${
                         isBuy ? 'bg-emerald-500' : isSell ? 'bg-rose-500' : 'bg-amber-500'
                       }`}
-                      style={{ width: `${Math.min(100, Math.max(5, conf))}%` }}
+                      style={{ width: `${Number.isFinite(conf) ? Math.min(100, Math.max(0, conf)) : 0}%` }}
                     />
                   </div>
                 </div>
@@ -150,19 +150,19 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
                   <div>
                     <span className="text-[10px] text-slate-500 block">Entrada</span>
                     <span className="font-semibold text-slate-300">
-                      ${entryPrice.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                      {Number.isFinite(entryPrice) && entryPrice > 0 ? `$${entryPrice.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}` : '--'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-rose-400/80 block">Stop Loss</span>
                     <span className="font-semibold text-rose-400">
-                      ${stopLoss.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                      {Number.isFinite(stopLoss) && stopLoss > 0 ? `$${stopLoss.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}` : '--'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-emerald-400/80 block">Take Profit</span>
                     <span className="font-semibold text-emerald-400">
-                      ${takeProfit.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                      {Number.isFinite(takeProfit) && takeProfit > 0 ? `$${takeProfit.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}` : '--'}
                     </span>
                   </div>
                 </div>
@@ -171,7 +171,9 @@ export const SignalsFeed: React.FC<SignalsFeedProps> = ({
                 <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-[#242f42]/40 text-[10px] text-slate-400">
                   <div className="flex items-center gap-1.5">
                     <span className="font-mono">
-                      R/R 1:{signal.trigger_factors?.risk_reward_ratio?.toFixed(1) ?? '2.2'}
+                      {signal.trigger_factors?.risk_reward_ratio != null
+                        ? `R/R 1:${signal.trigger_factors.risk_reward_ratio.toFixed(1)}`
+                        : 'R/R sin lectura'}
                     </span>
                     {signal.trigger_factors?.market_regime && (
                       <span className="px-1.5 py-0.5 rounded text-[9px] bg-[#0b0e14] text-blue-300 font-mono border border-[#242f42]">
